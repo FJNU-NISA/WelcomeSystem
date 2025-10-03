@@ -1,0 +1,9 @@
+# NISA Welcome System 依赖包
+fastapi>=0.100.0
+uvicorn[standard]>=0.21.0
+pymongo>=4.3.3
+motor>=3.1.2
+python-multipart>=0.0.6
+Pillow>=9.5.0
+pydantic>=1.10.7
+bson>=0.5.10

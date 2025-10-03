@@ -1,0 +1,1318 @@
+/* 抽奖页面样式 - 更新于2025-10-03 修复垂直布局 */
+
+/* 顶部导航 */
+.top-nav {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+}
+
+.nav-left h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-btn {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.nav-btn:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+    color: white;
+}
+
+.separator {
+    color: rgba(255,255,255,0.6);
+    margin: 0 0.5rem;
+}
+
+.points {
+    background: rgba(255,255,255,0.2);
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-weight: 600;
+}
+
+/* 主容器 */
+.main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* 通用区域样式 */
+.section-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.section-header h2 {
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.section-subtitle {
+    color: #7f8c8d;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* 奖品展示区 */
+.prizes-section {
+    margin-bottom: 3rem;
+}
+
+.prizes-carousel {
+    overflow: hidden;
+    border-radius: 15px;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    position: relative;
+    /* 确保轮播容器有足够的宽度 */
+    width: 100%;
+}
+
+.carousel-track {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    /* 关键：确保轨道宽度自适应内容 */
+    width: fit-content;
+    /* 无缝循环滚动动画 - 加快速度到15秒 */
+    animation: seamless-scroll 15s linear infinite;
+    /* 确保动画不会在鼠标悬停时暂停 */
+    animation-play-state: running;
+}
+
+/* 无缝循环滚动动画
+   原理：我们将复制一份奖品列表，当滚动到-50%时，
+   第一组正好完全移出视野，第二组完全进入，此时重置到0%
+   由于内容完全一样，视觉上是无缝的 */
+@keyframes seamless-scroll {
+    0% { 
+        transform: translateX(0); 
+    }
+    100% { 
+        transform: translateX(-50%); 
+    }
+}
+
+.prize-card {
+    flex: 0 0 300px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.prize-card:hover {
+    transform: translateY(-5px);
+}
+
+/* 已抽完的奖品样式 */
+.prize-card.out-of-stock {
+    opacity: 0.7;
+}
+
+.prize-card.out-of-stock .prize-image img {
+    filter: grayscale(50%);
+}
+
+.prize-image {
+    height: 200px;
+    overflow: hidden;
+    background: #e9ecef;
+    position: relative;
+    flex-shrink: 0; /* 防止图片区域被压缩 */
+}
+
+.prize-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.prize-card:hover .prize-image img {
+    transform: scale(1.1);
+}
+
+/* 已抽完标签 */
+.sold-out-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(231, 76, 60, 0.9);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.prize-info {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.prize-name {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.prize-description {
+    color: #7f8c8d;
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.prize-quantity {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.loading-prizes {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem;
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    width: 100%;
+}
+
+.no-prizes-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem;
+    color: #7f8c8d;
+    width: 100%;
+}
+
+.no-prizes-message i {
+    font-size: 3rem;
+    opacity: 0.5;
+}
+
+/* 抽奖区域 */
+.lottery-section {
+    margin-bottom: 3rem;
+}
+
+.lottery-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    width: 100%; /* 确保容器占满可用宽度 */
+    margin: 0 auto;
+}
+
+/* 抽奖操作区 - 居中布局 */
+.lottery-action-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+    max-width: 592px; /* 调整宽度以匹配下方按钮区域 (280px + 280px + 32px gap) */
+}
+
+/* 用户积分显示 */
+.user-points-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 0;
+}
+
+.points-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ffffff;
+    font-size: 1.3rem;
+    white-space: nowrap;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.points-label {
+    font-weight: 500;
+}
+
+.points-value {
+    font-weight: 700;
+    font-size: 1.6rem;
+}
+
+/* 抽奖按钮和积分显示区域 */
+.lottery-section .lottery-container .lottery-action-area .lottery-button-area {
+    display: flex !important;
+    flex-direction: column !important; /* 强制垂直排列 */
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2rem !important; /* 桌面端使用更大间距 */
+    width: 100% !important;
+}
+
+.lottery-info-panel {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 680px; /* 限制最大宽度，使其与下方按钮区域协调 */
+    margin-bottom: 2rem; /* 添加底部间距 */
+}
+
+.lottery-info-panel h3 {
+    margin: 0 0 1.5rem 0;
+    color: #ffffff;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    justify-content: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.lottery-info-panel ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* 使列表项居中 */
+}
+
+.lottery-info-panel li {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+    padding-left: 1.5rem;
+    position: relative;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    width: auto; /* 自动宽度 */
+}
+
+.lottery-info-panel li::before {
+    content: "★";
+    position: absolute;
+    left: 0;
+    color: #ffd700;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.lottery-info-panel strong {
+    color: #ffd700;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.lottery-button-container {
+    text-align: center;
+    flex-shrink: 0; /* 防止按钮容器缩小 */
+}
+
+.lottery-btn {
+    position: relative;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    border: none;
+    border-radius: 20px;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(238, 90, 36, 0.4);
+    width: 280px; /* 调整为更均衡的宽度 */
+    height: 90px; /* 调整为更均衡的高度 */
+}
+
+.lottery-btn:hover:not(.disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(238, 90, 36, 0.6);
+}
+
+.lottery-btn.disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+}
+
+.btn-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    transition: all 0.3s ease;
+}
+
+.lottery-btn:hover:not(.disabled) .btn-background {
+    background: linear-gradient(135deg, #ee5a24, #ff6b6b);
+}
+
+.btn-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    height: 100%;
+    color: white;
+}
+
+.btn-icon {
+    font-size: 1.5rem;
+}
+
+.btn-text-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.btn-main-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.btn-sub-text {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    line-height: 1.2;
+}
+
+.btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.lottery-btn:hover:not(.disabled) .btn-shine {
+    left: 100%;
+}
+
+.lottery-tips {
+    margin-top: 1.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+.lottery-tips i {
+    color: #f39c12;
+    margin-right: 0.5rem;
+}
+
+.btn-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem 3rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: white;
+}
+
+.btn-glow {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.lottery-btn:hover:not(.disabled) .btn-glow {
+    left: 100%;
+}
+
+/* 抽奖结果 */
+.lottery-result {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.result-animation {
+    text-align: center;
+}
+
+.spinning-wheel {
+    font-size: 4rem;
+    color: #e74c3c;
+    margin-bottom: 1rem;
+}
+
+.result-content {
+    text-align: center;
+}
+
+.result-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.success-icon {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    animation: bounce 0.6s ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
+    40%, 43% { transform: translateY(-20px); }
+    70% { transform: translateY(-10px); }
+    90% { transform: translateY(-4px); }
+}
+
+.prize-won {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.prize-won img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+/* 奖品图标占位符 */
+.prize-icon-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.prize-icon-placeholder i {
+    font-size: 2.5rem;
+    color: white;
+}
+
+.prize-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.prize-details h4 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+    word-wrap: break-word;
+}
+
+.prize-details p {
+    margin: 0;
+    color: #7f8c8d;
+    word-wrap: break-word;
+}
+
+.result-info {
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+/* 信息横幅 */
+.info-banner {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.banner-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+}
+
+.banner-content i {
+    font-size: 1.5rem;
+    margin-top: 0.2rem;
+    opacity: 0.8;
+}
+
+.banner-content h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.3rem;
+}
+
+.banner-content ul {
+    margin: 0;
+    padding-left: 1rem;
+}
+
+.banner-content li {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+/* 模态框 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+    transition: transform 0.3s ease;
+    position: relative;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header.info {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+}
+
+.modal-header.success {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: white;
+}
+
+.modal-header.warning {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+}
+
+.modal-header.error {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: currentColor;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.3s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.modal-body {
+    padding: 2rem;
+    background: #ffffff;
+    max-height: 70vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body p {
+    margin: 0;
+    line-height: 1.6;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+/* 奖品展示样式 */
+.modal-body img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.modal-body .fa-gift {
+    animation: prizeGiftBounce 0.6s ease-in-out;
+}
+
+@keyframes prizeGiftBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.modal-footer {
+    padding: 1rem 2rem 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ffffff;
+}
+
+.btn {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .page-container {
+        padding: 0.5rem;
+    }
+
+    .content-wrapper {
+        padding: 0;
+    }
+
+    .main-container {
+        padding: 1rem;
+    }
+
+    /* 奖品展示区 */
+    .prizes-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.4rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .prizes-carousel {
+        height: 200px;
+        margin-bottom: 1rem;
+    }
+
+    .prize-card {
+        flex: 0 0 180px;
+        height: auto; /* 改为自适应高度 */
+        min-height: 160px; /* 设置最小高度 */
+        padding: 0.8rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .prize-image {
+        height: 60px;
+        margin-bottom: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .prize-info {
+        padding: 0; /* 移除padding，因为卡片已有padding */
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .prize-name {
+        font-size: 0.85rem;
+        margin-bottom: 0.3rem;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* 最多显示2行 */
+        -webkit-box-orient: vertical;
+    }
+
+    .prize-description {
+        font-size: 0.75rem;
+        line-height: 1.2;
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 1; /* 最多显示1行 */
+        -webkit-box-orient: vertical;
+    }
+
+    .prize-quantity {
+        font-size: 0.75rem;
+        margin-top: auto; /* 推到底部 */
+    }
+
+    /* 抽奖区域响应式 */
+    .lottery-container {
+        padding: 1.5rem 1rem;
+        gap: 1.5rem;
+    }
+
+    .lottery-section .lottery-container .lottery-action-area .lottery-button-area {
+        display: flex !important;
+        flex-direction: column !important; /* 强制垂直排列 */
+        gap: 1.5rem !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    .user-points-display {
+        padding: 1rem 1.5rem;
+        order: 1;
+        width: 100%; /* 占满可用宽度 */
+        max-width: 400px; /* 限制最大宽度 */
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .lottery-button-container {
+        order: 2;
+        width: 100%;
+        max-width: 400px; /* 与积分显示保持一致的宽度 */
+        display: flex;
+        justify-content: center;
+    }
+
+    .points-info {
+        font-size: 1rem;
+        justify-content: center;
+    }
+
+    .points-value {
+        font-size: 1.3rem;
+        padding: 0.2rem 0.8rem;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .lottery-btn {
+        width: 100%;
+        max-width: 280px;
+        height: 70px;
+    }
+
+    .btn-main-text {
+        font-size: 1rem;
+    }
+
+    .btn-sub-text {
+        font-size: 0.8rem;
+    }
+
+    .lottery-info-panel {
+        padding: 1.5rem;
+    }
+
+    .lottery-info-panel h3 {
+        font-size: 1rem;
+    }
+
+    /* 抽奖区域 */
+    .lottery-container {
+        padding: 1.5rem 1rem;
+        margin: 0 0.5rem;
+        border-radius: 12px;
+    }
+
+    .lottery-info {
+        margin-bottom: 1.5rem;
+    }
+
+    .cost-display {
+        font-size: 1rem;
+        padding: 0.8rem 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .user-status {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+
+    .status-item {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    /* 抽奖按钮 */
+    .lottery-btn {
+        width: 200px;
+        height: 80px;
+        font-size: 1rem;
+    }
+
+    .btn-content {
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .btn-content i {
+        font-size: 1.2rem;
+        margin-right: 0.5rem;
+    }
+
+    /* 抽奖结果 */
+    .lottery-result {
+        margin-top: 1.5rem;
+        padding: 1rem;
+    }
+
+    .spinning-wheel i {
+        font-size: 2rem;
+    }
+
+    .result-content {
+        padding: 1rem;
+    }
+
+    .prize-won {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .prize-won-image {
+        width: 60px;
+        height: 60px;
+    }
+
+    .prize-won-info h3 {
+        font-size: 1.1rem;
+    }
+
+    .prize-won-info p {
+        font-size: 0.85rem;
+    }
+
+    /* 提示横幅 */
+    .info-banner {
+        margin: 1rem 0.5rem;
+        padding: 1rem;
+    }
+
+    .banner-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.8rem;
+    }
+
+    .banner-content i {
+        font-size: 1.2rem;
+    }
+
+    .banner-content h3 {
+        font-size: 1rem;
+    }
+
+    .banner-content li {
+        font-size: 0.85rem;
+        margin-bottom: 0.3rem;
+    }
+
+    /* 模态框 */
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    .modal-header {
+        padding: 1rem;
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    .modal-footer {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-container {
+        padding: 0.25rem;
+    }
+
+    /* 进一步优化小屏幕 */
+    .section-header {
+        padding: 0.8rem;
+        text-align: center;
+    }
+
+    .section-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .prizes-carousel {
+        height: 180px;
+    }
+
+    .carousel-track {
+        padding: 0.8rem;
+        gap: 0.8rem;
+    }
+
+    .prize-card {
+        flex: 0 0 150px;
+        height: auto; /* 改为自适应高度 */
+        min-height: 140px; /* 设置最小高度 */
+        padding: 0.6rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .prize-image {
+        height: 50px;
+        margin-bottom: 0.4rem;
+        flex-shrink: 0;
+    }
+
+    .prize-info {
+        padding: 0; /* 移除padding */
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .prize-name {
+        font-size: 0.75rem;
+        line-height: 1.2;
+        margin-bottom: 0.2rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* 最多显示2行 */
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .prize-description {
+        font-size: 0.7rem;
+        line-height: 1.1;
+        margin-bottom: 0.3rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 1; /* 最多显示1行 */
+        line-clamp: 1;
+        -webkit-box-orient: vertical;
+    }
+
+    .prize-quantity {
+        font-size: 0.7rem;
+        margin-top: auto; /* 推到底部 */
+    }
+
+    .prize-points {
+        font-size: 0.7rem;
+    }
+
+    /* 抽奖容器 */
+    .lottery-container {
+        padding: 1rem 0.8rem;
+        margin: 0 0.25rem;
+    }
+
+    .cost-display {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.8rem;
+    }
+
+    .status-item {
+        padding: 0.6rem;
+        font-size: 0.8rem;
+    }
+
+    .lottery-button-area {
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .user-points-display {
+        padding: 0.8rem 1rem;
+        max-width: 320px;
+    }
+
+    .lottery-button-container {
+        max-width: 320px;
+    }
+
+    .lottery-btn {
+        width: 100%;
+        max-width: 320px;
+        height: 70px;
+        font-size: 0.9rem;
+    }
+
+    .btn-content {
+        padding: 0.8rem 1.2rem;
+        font-size: 0.9rem;
+    }
+
+    .btn-content i {
+        font-size: 1rem;
+        margin-right: 0.4rem;
+    }
+
+    /* 结果显示 */
+    .lottery-result {
+        margin-top: 1rem;
+        padding: 0.8rem;
+    }
+
+    .spinning-wheel i {
+        font-size: 1.8rem;
+    }
+
+    .result-content {
+        padding: 0.8rem;
+    }
+
+    .prize-won-image {
+        width: 50px;
+        height: 50px;
+    }
+
+    .prize-won-info h3 {
+        font-size: 1rem;
+    }
+
+    .prize-won-info p {
+        font-size: 0.8rem;
+    }
+
+    /* 横幅 */
+    .info-banner {
+        margin: 1rem 0.25rem;
+        padding: 0.8rem;
+    }
+
+    .banner-content h3 {
+        font-size: 0.9rem;
+    }
+
+    .banner-content li {
+        font-size: 0.8rem;
+    }
+
+    /* 模态框优化 */
+    .modal {
+        padding: 0.5rem;
+    }
+
+    .modal-content {
+        width: calc(100% - 1rem);
+        margin: 0.5rem;
+        padding: 0.8rem;
+        border-radius: 8px;
+    }
+
+    .modal-header h3 {
+        font-size: 1rem;
+    }
+
+    .modal-body p {
+        font-size: 0.9rem;
+    }
+
+    .modal-footer button {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+        min-height: 44px;
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 360px) {
+    .lottery-btn {
+        width: 160px;
+        height: 60px;
+    }
+
+    .btn-content {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    .prize-card {
+        flex: 0 0 130px;
+        height: 120px;
+    }
+
+    .section-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .cost-display {
+        font-size: 0.8rem;
+    }
+}
+
+/* 强制修复抽奖按钮布局 - 最高优先级 */
+.lottery-button-area,
+div.lottery-button-area,
+.lottery-action-area .lottery-button-area,
+.lottery-container .lottery-button-area {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2rem !important;
+    width: 100% !important;
+}
+
+/* 移动端强制修复 */
+@media (max-width: 768px) {
+    .lottery-button-area,
+    div.lottery-button-area,
+    .lottery-action-area .lottery-button-area,
+    .lottery-container .lottery-button-area {
+        flex-direction: column !important;
+        gap: 1.5rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .lottery-button-area,
+    div.lottery-button-area,
+    .lottery-action-area .lottery-button-area,
+    .lottery-container .lottery-button-area {
+        gap: 1rem !important;
+    }
+}

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成员管理 - NISA Welcome System</title>
+    <link rel="stylesheet" href="/Pages/Common/css/base.css">
+    <link rel="stylesheet" href="/Pages/MemberManagement/css/membermanagement.css?v=20251002">
+    <link rel="stylesheet" href="/Pages/Common/libs/font-awesome/all.min.css">
+</head>
+<body>
+    <!-- 统一导航栏将通过JavaScript自动插入 -->
+    
+    <div class="page-container">
+        <div class="main-container">
+            <div class="header-section">
+                <h1><i class="fas fa-users"></i> 成员管理</h1>
+            </div>
+
+        <!-- 统计面板 -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="totalMembers">0</div>
+                    <div class="stat-label">总成员数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon members">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="regularMembers">0</div>
+                    <div class="stat-label">普通成员</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon admins">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="adminMembers">0</div>
+                    <div class="stat-label">管理员</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon super-admins">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="superAdminMembers">0</div>
+                    <div class="stat-label">超级管理员</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作面板 -->
+        <div class="action-panel">
+            <div class="search-section">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="搜索学号..." />
+                </div>
+                <button class="btn btn-primary" onclick="searchMembers()">
+                    <i class="fas fa-search"></i> 搜索
+                </button>
+                <button class="btn btn-secondary" onclick="clearSearch()">
+                    <i class="fas fa-times"></i> 清空
+                </button>
+            </div>
+            <div class="filter-section">
+                <label for="roleFilter">角色筛选：</label>
+                <select id="roleFilter" onchange="filterMembers()">
+                    <option value="all">所有成员</option>
+                    <option value="user">普通成员</option>
+                    <option value="admin">管理员</option>
+                    <option value="super_admin">超级管理员</option>
+                </select>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="showAddMemberModal()">
+                    <i class="fas fa-user-plus"></i> 添加成员
+                </button>
+                <button class="btn btn-info" onclick="exportMembers()">
+                    <i class="fas fa-download"></i> 导出数据
+                </button>
+            </div>
+        </div>
+
+        <!-- 成员列表 -->
+        <div class="members-container">
+            <div class="table-header">
+                <h3><i class="fas fa-list"></i> 成员列表</h3>
+            </div>
+            <div class="table-container">
+                <table class="members-table">
+                    <thead>
+                        <tr>
+                            <th>学号</th>
+                            <th>角色</th>
+                            <th>积分</th>
+                            <th>通过的关卡</th>
+                            <th>注册时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody">
+                        <!-- 成员数据将通过JavaScript动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination">
+                <!-- 分页控件将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑成员模态框 -->
+    <div id="memberModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">添加成员</h3>
+                <span class="close" onclick="closeMemberModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="memberForm">
+                    <div class="form-group">
+                        <label for="studentId">学号 *</label>
+                        <input type="text" id="studentId" name="studentId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">角色 *</label>
+                        <select id="role" name="role" required>
+                            <option value="user">普通成员</option>
+                            <option value="admin">管理员</option>
+                            <option value="super_admin">超级管理员</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="points">初始积分</label>
+                        <input type="number" id="points" name="points" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">初始密码</label>
+                        <input type="password" id="password" name="password" placeholder="留空则默认密码为学号">
+                        <small class="form-help">如果不设置密码，默认密码将设置为用户的学号</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeMemberModal()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveMember()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成员详情模态框 -->
+    <div id="memberDetailModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>成员详情</h3>
+                <span class="close" onclick="closeMemberDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="memberDetailContent">
+                    <!-- 详情内容将通过JavaScript动态填充 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeMemberDetailModal()">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>确认删除</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage">确定要删除此成员吗？此操作不可恢复！</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> 删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <script src="/Pages/Common/js/utils.js"></script>
+    <script src="/Pages/MemberManagement/js/membermanagement.js?v=20250102"></script>
+    <!-- 引入统一导航栏组件 -->
+    <script src="/Pages/Common/js/navigation.js"></script>
+</body>
+</html>

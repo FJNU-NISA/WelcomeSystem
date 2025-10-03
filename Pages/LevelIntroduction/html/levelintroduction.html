@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关卡查看 - NISA迎新系统</title>
+    <link rel="stylesheet" href="/Pages/Common/css/base.css">
+    <link rel="stylesheet" href="/Pages/LevelIntroduction/css/levelintroduction.css">
+    <link rel="stylesheet" href="/Pages/Common/libs/font-awesome/all.min.css">
+</head>
+<body>
+    <!-- 导航栏占位 -->
+    <div id="navbar-placeholder"></div>
+
+    <!-- 页面容器 -->
+    <div class="page-container">
+        <!-- 主要内容区域 -->
+        <div class="main-container">
+            <div class="page-header">
+                <h1><i class="fas fa-trophy"></i> 关卡查看</h1>
+                <p class="subtitle">查看关卡信息和可获得积分</p>
+            </div>
+
+        <!-- 加载提示 -->
+        <div id="loadingIndicator" class="loading-indicator">
+            <i class="fas fa-spinner fa-spin"></i> 加载中...
+        </div>
+
+        <!-- 关卡列表 -->
+        <div id="levelsContainer" class="levels-container" style="display: none;">
+            <!-- 关卡卡片将通过JS动态生成 -->
+        </div>
+
+        <!-- 空状态提示 -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-inbox"></i>
+            <p>暂无关卡信息</p>
+        </div>
+        </div> <!-- .main-container 结束 -->
+    </div> <!-- .page-container 结束 -->
+
+    <!-- 关卡详情弹窗 -->
+    <div id="levelDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeLevelDetail()">&times;</span>
+            <div id="levelDetailContent">
+                <!-- 详情内容将通过JS动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/Pages/Common/js/navigation.js"></script>
+    <script src="/Pages/Common/js/utils.js"></script>
+    <script src="/Pages/LevelIntroduction/js/levelintroduction.js"></script>
+</body>
+</html>

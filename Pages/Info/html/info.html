@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NISA Welcome System - 个人信息</title>
+    <!-- 引入通用基础样式 -->
+    <link rel="stylesheet" href="/Pages/Common/css/base.css">
+    <!-- 引入个人信息页面专用样式 -->
+    <link rel="stylesheet" href="/Pages/Info/css/info.css">
+    <!-- Font Awesome 图标库 (本地版本) -->
+    <link rel="stylesheet" href="/Pages/Common/libs/font-awesome/all.min.css">
+    <!-- 可靠的二维码生成库 -->
+    <script src="/Pages/Common/js/libs/qrcode.min.js"></script>
+    <script src="/Pages/Common/js/libs/simple-qr-generator.js"></script>
+    <!-- 二维码扫描库 -->
+    <script src="/Pages/Common/js/libs/jsQR.js"></script>
+</head>
+<body>
+    <!-- 统一导航栏将通过JavaScript自动插入 -->
+    
+    <!-- 主容器 -->
+    <div class="page-container">
+        <div class="content-wrapper">
+            <!-- 页面标题 -->
+            <div class="page-header">
+                <h2><i class="fas fa-user"></i> 个人信息</h2>
+            </div>
+
+            <!-- 管理员搜索功能 -->
+            <div class="admin-search-section" id="adminSearchSection" style="display: none;">
+                <div class="search-card">
+                    <div class="search-header">
+                        <h3><i class="fas fa-search"></i> 用户查询</h3>
+                    </div>
+                    <div class="search-body">
+                        <div class="search-methods">
+                            <div class="search-method">
+                                <label for="stuIdInput">学号查询：</label>
+                                <div class="search-input-group">
+                                    <input type="text" id="stuIdInput" placeholder="输入学号" />
+                                    <button onclick="searchUserByStuId()" class="btn btn-primary">
+                                        <i class="fas fa-search"></i> 查询
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="search-method">
+                                <label>二维码扫描：</label>
+                                
+                                <!-- 方式1：上传二维码图片（推荐，无需摄像头） -->
+                                <div class="scan-controls">
+                                    <label for="qrImageUpload" class="btn btn-primary" style="margin-bottom: 10px; cursor: pointer;">
+                                        <i class="fas fa-image"></i> 上传二维码图片
+                                    </label>
+                                    <input type="file" id="qrImageUpload" accept="image/*" style="display: none;" onchange="handleQRImageUpload(event)">
+                                    <div id="uploadStatus" style="margin-top: 10px; display: none;"></div>
+                                </div>
+                                
+                                <!-- 方式2：实时摄像头扫描（需要摄像头权限） -->
+                                <div class="scan-controls" style="margin-top: 10px;">
+                                    <button id="scanButton" onclick="startQRScanner()" class="btn btn-secondary">
+                                        <i class="fas fa-camera"></i> 实时扫描（需摄像头）
+                                    </button>
+                                    <button id="stopScanButton" onclick="stopQRScanner()" class="btn btn-danger" style="display: none;">
+                                        <i class="fas fa-stop"></i> 停止扫描
+                                    </button>
+                                </div>
+                                <div id="qrScannerContainer" style="display: none;">
+                                    <video id="qrScannerVideo" autoplay playsinline></video>
+                                    <div class="scanner-overlay">
+                                        <div class="scan-area"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 预览上传的图片 -->
+                                <div id="uploadedImagePreview" style="display: none; margin-top: 15px;">
+                                    <img id="uploadedImage" style="max-width: 300px; border: 2px solid var(--primary-color); border-radius: 8px;">
+                                    <canvas id="uploadCanvas" style="display: none;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loadingDiv" class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>加载中...</span>
+            </div>
+
+            <!-- 错误提示 -->
+            <div id="errorDiv" class="error-message" style="display: none;"></div>
+
+            <!-- 用户信息卡片 -->
+            <div class="info-cards" id="infoCards" style="display: none;">
+                <!-- 基本信息卡片 -->
+                <div class="info-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-id-card"></i> 基本信息</h3>
+                        <!-- 管理员操作按钮（仅在查看其他用户时显示） -->
+                        <div class="admin-actions" id="adminActions" style="display: none;">
+                            <button onclick="goToModifyPoints()" class="btn btn-primary btn-sm">
+                                <i class="fas fa-coins"></i>
+                                分发积分
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="info-item">
+                            <label>学号：</label>
+                            <span id="userStuId">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>身份：</label>
+                            <span id="userRole" class="role-badge">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>当前积分：</label>
+                            <span id="userPoints" class="points-value">-</span>
+                        </div>
+                        
+                        <!-- 身份二维码区域 -->
+                        <div class="info-item qrcode-item">
+                            <label style="align-self: flex-start; margin-top: 10px;">身份二维码：</label>
+                            <div id="qrcodeContainer" class="qrcode-container-inline">
+                                <button class="generate-qr-btn-inline" onclick="generateQRCode()">
+                                    <i class="fas fa-qrcode"></i>
+                                    生成我的二维码
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 关卡进度卡片 -->
+                <div class="info-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-layer-group"></i> 通关记录</h3>
+                    </div>
+                    <div class="card-content">
+                        <div id="levelsContainer">
+                            <div class="no-data">暂无通关记录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 奖品记录卡片 -->
+                <div class="info-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-gift"></i> 获得奖品</h3>
+                    </div>
+                    <div class="card-content">
+                        <div id="prizesContainer">
+                            <div class="no-data">暂无获得奖品</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 管理员搜索功能（仅管理员可见） -->
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/Pages/Common/js/utils.js"></script>
+    <script>
+        let currentUser = null;
+        let targetStuId = null; // 要查询的学号
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            targetStuId = urlParams.get('stuId');
+            
+            console.log('📄 页面初始化:');
+            console.log('- 当前URL:', window.location.href);
+            console.log('- URL参数:', window.location.search);
+            console.log('- 解析的targetStuId:', targetStuId);
+            
+            loadUserInfo();
+        });
+
+        // 加载用户信息
+        async function loadUserInfo() {
+            try {
+                // 构建请求URL
+                let apiUrl = '/api/user/info';
+                if (targetStuId) {
+                    apiUrl += `?stuId=${encodeURIComponent(targetStuId)}`;
+                }
+
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.status === 401) {
+                    // 未登录，跳转到登录页面，并带上回调URL
+                    const currentUrl = encodeURIComponent(window.location.href);
+                    window.location.href = `/login?redirect=${currentUrl}`;
+                    return;
+                }
+
+                if (response.status === 403) {
+                    // 权限不足
+                    showError('权限不足，您只能查看自己的信息');
+                    return;
+                }
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        showError('用户不存在');
+                    } else {
+                        throw new Error('获取用户信息失败');
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                
+                // API直接返回用户对象
+                displayUserInfo(data);
+                
+                // 获取当前登录用户信息用于导航设置
+                if (!targetStuId) {
+                    // 如果查询的是自己，则设置为当前用户
+                    currentUser = data;
+                    // 等待导航栏加载完成后再设置权限
+                    waitForNavigation(() => setupNavigation(currentUser.role));
+                    // 显示管理员搜索功能
+                    showAdminSearchIfNeeded(currentUser);
+                } else {
+                    // 如果查询的是其他用户，需要单独获取当前用户信息
+                    await getCurrentUserForNavigation();
+                    // 重新调用displayUserInfo以确保按钮显示逻辑正确
+                    displayUserInfo(data);
+                }
+
+                // 更新页面标题
+                updatePageTitle(data, targetStuId);
+                
+            } catch (error) {
+                console.error('加载用户信息错误:', error);
+                showError('加载用户信息失败，请刷新页面重试');
+            } finally {
+                document.getElementById('loadingDiv').style.display = 'none';
+            }
+        }
+
+        // 获取当前用户信息用于导航设置
+        async function getCurrentUserForNavigation() {
+            try {
+                console.log('🔄 获取当前登录用户信息...');
+                
+                const response = await fetch('/api/user/info', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    console.log('✅ 成功获取当前用户信息:', currentUser);
+                    waitForNavigation(() => setupNavigation(currentUser.role));
+                    // 显示管理员搜索功能
+                    showAdminSearchIfNeeded(currentUser);
+                } else {
+                    console.error('❌ 获取当前用户信息失败，状态码:', response.status);
+                }
+            } catch (error) {
+                console.error('❌ 获取当前用户信息异常:', error);
+            }
+        }
+
+        // 更新页面标题
+        function updatePageTitle(userData, queryStuId) {
+            const pageHeader = document.querySelector('.page-header h2');
+            
+            if (queryStuId && currentUser && queryStuId !== currentUser.stuId) {
+                // 查询他人信息
+                pageHeader.innerHTML = '<i class="fas fa-user-friends"></i> 用户信息查询';
+                
+                // 添加返回按钮
+                const backButton = document.createElement('button');
+                backButton.innerHTML = '<i class="fas fa-arrow-left"></i> 返回我的信息';
+                backButton.className = 'btn btn-secondary';
+                backButton.style.marginLeft = '10px';
+                backButton.onclick = function() {
+                    window.location.href = '/info';
+                };
+                pageHeader.appendChild(backButton);
+            } else {
+                // 查询自己信息
+                pageHeader.innerHTML = '<i class="fas fa-user"></i> 个人信息';
+            }
+        }
+
+        // 显示用户信息
+        function displayUserInfo(user) {
+            console.log('🔍 显示用户信息调试:');
+            console.log('- 用户数据:', user);
+            console.log('- 目标学号 (targetStuId):', targetStuId);
+            console.log('- 当前用户:', currentUser);
+            
+            // 确保targetStuId被正确设置
+            if (!targetStuId && user.stuId) {
+                // 如果targetStuId为空但用户数据中有stuId，说明可能是查看他人信息
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlStuId = urlParams.get('stuId');
+                if (urlStuId && urlStuId === user.stuId) {
+                    targetStuId = urlStuId;
+                    console.log('✅ 从URL参数更新targetStuId:', targetStuId);
+                }
+            }
+            
+            // 更新基本信息
+            const userStuIdElement = document.getElementById('userStuId');
+            const userRoleElement = document.getElementById('userRole');
+            const userPointsElement = document.getElementById('userPoints');
+            
+            if (userStuIdElement) userStuIdElement.textContent = user.stuId || '-';
+            if (userRoleElement) {
+                userRoleElement.textContent = getRoleText(user.role);
+                userRoleElement.className = `role-badge role-${user.role}`;
+            }
+            if (userPointsElement) userPointsElement.textContent = user.points || 0;
+
+            // 显示关卡进度
+            const completedLevels = user.completedLevels || [];
+            displayLevels(completedLevels, user.stuId);
+
+            // 显示奖品记录 - 从API动态加载
+            displayPrizes(user.stuId);
+
+            // 二维码功能显示逻辑：
+            // - 查看自己信息时：总是显示
+            // - 查看他人信息时：只有管理员可以显示
+            const qrcodeContainer = document.getElementById('qrcodeContainer');
+            const qrcodeCard = qrcodeContainer ? qrcodeContainer.closest('.info-card') : null;
+            const generateBtn = qrcodeContainer ? qrcodeContainer.querySelector('.generate-qr-btn') : null;
+            
+            if (targetStuId && currentUser && targetStuId !== currentUser.stuId) {
+                // 查看他人信息时
+                const isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
+                if (isAdmin) {
+                    // 管理员可以生成他人身份码
+                    if (qrcodeCard) qrcodeCard.style.display = 'block';
+                    if (generateBtn) {
+                        generateBtn.innerHTML = '<i class="fas fa-qrcode"></i> 生成用户身份二维码';
+                    }
+                } else {
+                    // 普通用户不能生成他人身份码
+                    if (qrcodeCard) qrcodeCard.style.display = 'none';
+                }
+            } else {
+                // 查看自己信息时
+                if (qrcodeCard) qrcodeCard.style.display = 'block';
+                if (generateBtn) {
+                    generateBtn.innerHTML = '<i class="fas fa-qrcode"></i> 生成身份二维码';
+                }
+            }
+
+            // 管理员操作按钮的显示逻辑
+            const adminActions = document.getElementById('adminActions');
+            
+            console.log('🔐 管理员按钮显示逻辑检查:');
+            console.log('- currentUser存在:', !!currentUser);
+            console.log('- currentUser:', currentUser);
+            console.log('- 是否为管理员:', currentUser ? (currentUser.role === 'admin' || currentUser.role === 'super_admin') : false);
+            console.log('- targetStuId存在:', !!targetStuId);
+            console.log('- targetStuId:', targetStuId);
+            console.log('- 是否查看他人:', targetStuId && currentUser ? (targetStuId !== currentUser.stuId) : false);
+            
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin') && 
+                targetStuId && targetStuId !== currentUser.stuId) {
+                // 管理员查看他人信息时显示分发积分按钮
+                console.log('✅ 显示分发积分按钮');
+                if (adminActions) adminActions.style.display = 'flex';
+            } else {
+                console.log('❌ 隐藏分发积分按钮');
+                if (adminActions) adminActions.style.display = 'none';
+            }
+
+            // 管理员搜索功能的显示逻辑
+            const adminSection = document.getElementById('adminSearchSection');
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin')) {
+                if (adminSection) adminSection.style.display = 'block';
+                
+                // 如果正在查看他人信息，预填搜索框
+                if (targetStuId && targetStuId !== currentUser.stuId) {
+                    const stuIdInput = document.getElementById('stuIdInput');
+                    if (stuIdInput) stuIdInput.value = targetStuId;
+                }
+            } else {
+                if (adminSection) adminSection.style.display = 'none';
+            }
+
+            // 显示信息卡片
+            const infoCards = document.getElementById('infoCards');
+            if (infoCards) infoCards.style.display = 'block';
+        }
+
+        // 等待导航栏元素加载完成
+        function waitForNavigation(callback, maxAttempts = 10, currentAttempt = 0) {
+            const navItems = ['modifyPointsNavItem', 'memberMgmtNavItem', 'levelMgmtNavItem', 'prizeMgmtNavItem', 'giftRedemptionNavItem'];
+            const hasAnyNavItem = navItems.some(id => document.getElementById(id) !== null);
+            
+            if (hasAnyNavItem || currentAttempt >= maxAttempts) {
+                callback();
+            } else {
+                setTimeout(() => waitForNavigation(callback, maxAttempts, currentAttempt + 1), 100);
+            }
+        }
+
+        // 设置导航菜单权限
+        function setupNavigation(role) {
+            const navItems = {
+                'modifyPointsNavItem': ['admin', 'super_admin'],
+                'memberMgmtNavItem': ['super_admin'],
+                'levelMgmtNavItem': ['super_admin'],
+                'prizeMgmtNavItem': ['super_admin'],
+                'giftRedemptionNavItem': ['admin', 'super_admin']
+            };
+
+            Object.keys(navItems).forEach(itemId => {
+                const element = document.getElementById(itemId);
+                // 添加空值检查，避免导航栏未加载时出错
+                if (element && navItems[itemId].includes(role)) {
+                    element.style.display = 'block';
+                }
+            });
+        }
+
+        // 获取角色文本
+        function getRoleText(role) {
+            const roleMap = {
+                'user': '普通成员',
+                'admin': '管理员',
+                'super_admin': '超级管理员'
+            };
+            return roleMap[role] || '未知角色';
+        }
+
+        // 显示关卡进度
+        async function displayLevels(levelIds, stuId) {
+            const container = document.getElementById('levelsContainer');
+            
+            console.log('🎯 显示关卡进度:', { levelIds, stuId });
+            
+            if (!levelIds || levelIds.length === 0) {
+                container.innerHTML = '<div class="no-data">暂无通关记录</div>';
+                return;
+            }
+
+            try {
+                // 显示加载状态
+                container.innerHTML = '<div class="loading-small"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+                
+                // 获取关卡详细信息
+                const response = await fetch('/api/levels/details', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ levelIds: levelIds })
+                });
+
+                if (response.ok) {
+                    const levels = await response.json();
+                    console.log('✅ 获取到关卡详情:', levels);
+                    
+                    if (levels && levels.length > 0) {
+                        let html = '<div class="levels-list">';
+                        levels.forEach((level, index) => {
+                            const levelName = level.name || `关卡 ${index + 1}`;
+                            const levelDesc = level.description || '';
+                            const levelPoints = level.points || 0;
+                            
+                            html += `
+                                <div class="level-item">
+                                    <div class="level-info">
+                                        <i class="fas fa-trophy level-icon" style="color: #ffd700;"></i>
+                                        <div class="level-details">
+                                            <span class="level-name">${levelName}</span>
+                                            ${levelDesc ? `<span class="level-desc">${levelDesc}</span>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="level-status">
+                                        <span class="status-badge completed">
+                                            <i class="fas fa-check-circle"></i> 已完成
+                                        </span>
+                                        ${levelPoints > 0 ? `<span class="level-points">+${levelPoints}积分</span>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div class="no-data">暂无通关记录</div>';
+                    }
+                } else {
+                    // 如果API调用失败，显示简化版本
+                    console.warn('⚠️ 关卡详情API失败，使用简化显示');
+                    let html = '<div class="levels-list">';
+                    levelIds.forEach((levelId, index) => {
+                        html += `
+                            <div class="level-item">
+                                <div class="level-info">
+                                    <i class="fas fa-trophy level-icon" style="color: #ffd700;"></i>
+                                    <span class="level-name">关卡 ${index + 1}</span>
+                                </div>
+                                <div class="level-status">
+                                    <span class="status-badge completed">
+                                        <i class="fas fa-check-circle"></i> 已完成
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('❌ 加载关卡信息失败:', error);
+                container.innerHTML = `<div class="no-data">共完成 ${levelIds.length} 个关卡</div>`;
+            }
+        }
+
+        // 显示奖品记录
+        async function displayPrizes(stuId) {
+            const container = document.getElementById('prizesContainer');
+            
+            console.log('🎁 显示奖品记录:', { stuId });
+            
+            if (!stuId) {
+                container.innerHTML = '<div class="no-data">暂无获得奖品</div>';
+                return;
+            }
+
+            try {
+                // 显示加载状态
+                container.innerHTML = '<div class="loading-small"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+                
+                // 从API获取用户奖品
+                const response = await fetch(`/api/user/prizes/${encodeURIComponent(stuId)}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const prizes = data.prizes || [];
+                    
+                    console.log('✅ 获取到奖品列表:', prizes);
+                    
+                    if (prizes.length === 0) {
+                        container.innerHTML = '<div class="no-data">暂无获得奖品</div>';
+                        return;
+                    }
+
+                    // 检查当前用户是否是管理员
+                    const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin');
+                    const isViewingOthers = targetStuId && currentUser && targetStuId !== currentUser.stuId;
+                    const canRedeem = isAdmin && isViewingOthers;  // 只有管理员查看他人信息时才显示核销按钮
+
+                    let html = '<div class="prizes-list">';
+                    prizes.forEach((prize, index) => {
+                        const prizeName = prize.prizeName || prize.Name || prize.name || '未知奖品';
+                        const prizePhoto = prize.prizePhoto || prize.photo || '';
+                        const drawTime = prize.drawTime || prize.draw_time || prize.obtainTime;
+                        const isRedeemed = prize.redeemed || false;
+                        const redeemedAt = prize.redeemedAt || prize.redeem_time;
+                        const redeemedBy = prize.redeemedBy || prize.redeemed_by;
+                        
+                        // 构建图片URL
+                        let imageUrl = '';
+                        if (prizePhoto) {
+                            // 如果已经是完整URL,直接使用
+                            if (prizePhoto.startsWith('http://') || prizePhoto.startsWith('https://') || prizePhoto.startsWith('/')) {
+                                imageUrl = prizePhoto;
+                            } else {
+                                // 否则添加路径前缀
+                                imageUrl = `/Assest/Prize/${prizePhoto}`;
+                            }
+                        }
+                        
+                        html += `
+                            <div class="prize-item" data-prize-index="${index}">
+                                <div class="prize-info">
+                                    ${imageUrl ? 
+                                        `<img src="${imageUrl}" alt="${prizeName}" class="prize-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                                         <i class="fas fa-gift prize-icon" style="display: none; color: #ff6b6b;"></i>` 
+                                        : 
+                                        `<i class="fas fa-gift prize-icon" style="color: #ff6b6b;"></i>`
+                                    }
+                                    <div class="prize-details">
+                                        <div class="prize-name">${prizeName}</div>
+                                        <div class="prize-time">
+                                            <i class="fas fa-clock"></i> 抽中时间: ${formatDateTime(drawTime)}
+                                        </div>
+                                        ${isRedeemed ? 
+                                            `<div class="prize-time redeem-info">
+                                                <i class="fas fa-check-circle"></i> 核销时间: ${formatDateTime(redeemedAt)}
+                                            </div>
+                                            ${redeemedBy ? `<div class="prize-time redeem-info">
+                                                <i class="fas fa-user"></i> 核销人: ${redeemedBy}
+                                            </div>` : ''}` 
+                                            : ''
+                                        }
+                                    </div>
+                                </div>
+                                <div class="prize-status">
+                                    ${isRedeemed 
+                                        ? '<span class="status-badge redeemed"><i class="fas fa-check-circle"></i> 已核销</span>' 
+                                        : '<span class="status-badge available"><i class="fas fa-gift"></i> 未核销</span>'
+                                    }
+                                    ${canRedeem ? `
+                                        <button class="btn btn-sm ${isRedeemed ? 'btn-warning' : 'btn-success'}" 
+                                                onclick="toggleRedeemPrize('${stuId}', ${index}, ${isRedeemed})"
+                                                style="margin-top: 8px;">
+                                            <i class="fas fa-${isRedeemed ? 'undo' : 'check'}"></i>
+                                            ${isRedeemed ? '取消核销' : '核销'}
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else if (response.status === 403) {
+                    container.innerHTML = '<div class="no-data">权限不足，无法查看奖品</div>';
+                } else if (response.status === 404) {
+                    container.innerHTML = '<div class="no-data">用户不存在</div>';
+                } else {
+                    throw new Error('获取奖品失败');
+                }
+            } catch (error) {
+                console.error('❌ 加载奖品信息失败:', error);
+                container.innerHTML = '<div class="no-data">加载奖品失败，请刷新重试</div>';
+            }
+        }
+
+        // 格式化日期时间 - 更完整的显示
+        function formatDateTime(dateTimeValue) {
+            if (!dateTimeValue) return '未知';
+            
+            try {
+                let date;
+                // 处理不同的日期格式
+                if (dateTimeValue.$date) {
+                    // MongoDB的日期格式
+                    date = new Date(dateTimeValue.$date);
+                } else if (typeof dateTimeValue === 'string') {
+                    date = new Date(dateTimeValue);
+                } else if (dateTimeValue instanceof Date) {
+                    date = dateTimeValue;
+                } else {
+                    date = new Date(dateTimeValue);
+                }
+                
+                // 检查日期是否有效
+                if (isNaN(date.getTime())) {
+                    return '日期格式错误';
+                }
+                
+                // 格式化为 YYYY-MM-DD HH:MM:SS
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            } catch (error) {
+                console.error('日期格式化错误:', error, dateTimeValue);
+                return '日期格式错误';
+            }
+        }
+
+        // 切换奖品核销状态
+        async function toggleRedeemPrize(stuId, prizeIndex, currentRedeemed) {
+            const action = currentRedeemed ? '取消核销' : '核销';
+            
+            if (!confirm(`确认${action}该奖品吗?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/user/prizes/${encodeURIComponent(stuId)}/redeem?prize_index=${prizeIndex}`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(data.message || `${action}成功`);
+                    // 重新加载奖品列表
+                    await displayPrizes(stuId);
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || `${action}失败`);
+                }
+            } catch (error) {
+                console.error(`${action}失败:`, error);
+                alert(`${action}失败，请重试`);
+            }
+        }
+
+
+
+        // 备用二维码生成函数（使用HTML表格创建简单的二维码）
+        function generateFallbackQRCode(container, text, stuId) {
+            container.innerHTML = `
+                <div class="qrcode-display">
+                    <div class="qrcode-info">
+                        <h4>身份识别二维码</h4>
+                        <div class="qrcode-fallback-notice">
+                            <p><i class="fas fa-info-circle"></i> 二维码库加载失败，显示文本版本</p>
+                        </div>
+                        <div class="qrcode-text-display">
+                            <div class="qrcode-text-box">
+                                <pre>${text}</pre>
+                            </div>
+                        </div>
+                        <p class="qrcode-text">学号: ${stuId}</p>
+                        <div class="qrcode-actions">
+                            <button class="copy-btn" onclick="copyToClipboard('${text}')">
+                                <i class="fas fa-copy"></i> 复制链接
+                            </button>
+                        </div>
+                        <details class="qrcode-link-details">
+                            <summary>查看链接</summary>
+                            <div class="qrcode-url">${text}</div>
+                        </details>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 生成二维码
+        async function generateQRCode() {
+            // 权限检查：普通用户只能生成自己的二维码，管理员和超级管理员可以生成任何人的二维码
+            if (targetStuId && currentUser && targetStuId !== currentUser.stuId) {
+                const isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
+                if (!isAdmin) {
+                    alert('只能生成自己的二维码');
+                    return;
+                } else {
+                    console.log(`🔑 ${currentUser.role === 'super_admin' ? '超级管理员' : '管理员'} 正在生成用户 ${targetStuId} 的身份码`);
+                }
+            }
+
+            const container = document.getElementById('qrcodeContainer');
+            container.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+
+            try {
+                // 决定生成哪个用户的二维码：
+                // - 如果查看的是他人信息且当前用户是管理员，生成被查看用户的二维码
+                // - 否则生成当前用户自己的二维码
+                let stuIdForQR;
+                if (targetStuId && currentUser && targetStuId !== currentUser.stuId) {
+                    // 查看他人信息时，生成被查看用户的二维码
+                    stuIdForQR = targetStuId;
+                    console.log(`🎯 管理员生成用户 ${targetStuId} 的身份码`);
+                } else {
+                    // 查看自己信息时，生成自己的二维码
+                    stuIdForQR = currentUser ? currentUser.stuId : (targetStuId || '');
+                    console.log(`🎯 生成自己的身份码: ${stuIdForQR}`);
+                }
+                
+                const response = await fetch(`/api/user/qrcode/${stuIdForQR}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('生成二维码失败');
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 清空容器并准备结构
+                    container.innerHTML = `
+                        <div class="qrcode-display">
+                            <div class="qrcode-info">
+                                <h4>身份识别二维码</h4>
+                                <canvas id="qrcode-canvas" style="width: 250px; height: 250px; margin: 10px auto; display: block; border: 1px solid #dee2e6; border-radius: 8px;"></canvas>
+                                <p class="qrcode-text">学号: ${data.stuId}</p>
+                                <div class="qrcode-actions">
+                                    <button class="copy-btn" onclick="copyToClipboard('${data.qrcode}')">
+                                        <i class="fas fa-copy"></i> 复制链接
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 生成高容错率二维码 - 使用可靠的二维码库
+                    setTimeout(async () => {
+                        const canvas = document.getElementById('qrcode-canvas');
+                        
+                        console.log('🎯 开始生成高容错率二维码');
+                        console.log('- 可靠二维码库可用性检测:');
+                        console.log('  QRious:', typeof QRious !== 'undefined' ? '✅ 可用' : '❌ 不可用');
+                        console.log('  qrcode:', typeof qrcode !== 'undefined' ? '✅ 可用' : '❌ 不可用');
+                        console.log('  ReliableQRCode:', typeof ReliableQRCode !== 'undefined' ? '✅ 可用' : '❌ 不可用');
+                        
+                        try {
+                            console.log('🔍 检查新的QR码生成器可用性...');
+                            console.log('  - window.QRCode存在:', typeof window.QRCode !== 'undefined');
+                            console.log('  - window.simpleQRGenerator存在:', typeof window.simpleQRGenerator !== 'undefined');
+                            console.log('  - window.ReliableQRCode存在:', typeof window.ReliableQRCode !== 'undefined');
+                            
+                            if (typeof window.simpleQRGenerator === 'undefined') {
+                                throw new Error('SimpleQRCodeGenerator未加载');
+                            }
+                            
+                            console.log('🚀 使用SimpleQRCodeGenerator生成QR码');
+                            
+                            // 使用新的简单QR码生成器
+                            const dataUrl = await window.simpleQRGenerator.generate(data.qrcode, {
+                                size: 250,
+                                level: 'H', // 高容错率
+                                background: '#ffffff',
+                                foreground: '#000000'
+                            });
+                            
+                            if (dataUrl) {
+                                // 将生成的二维码绘制到canvas
+                                const img = new Image();
+                                img.onload = () => {
+                                    const ctx = canvas.getContext('2d');
+                                    canvas.width = 250;
+                                    canvas.height = 250;
+                                    ctx.drawImage(img, 0, 0, 250, 250);
+                                    console.log('✅ QR码生成并显示成功');
+                                };
+                                img.onerror = () => {
+                                    console.error('❌ QR码图片加载失败');
+                                    showQRCodeError();
+                                };
+                                img.src = dataUrl;
+                            } else {
+                                throw new Error('QR码生成返回空数据');
+                            }
+                        } catch (error) {
+                            console.error('❌ 二维码生成异常:', error);
+                            showQRCodeError();
+                        }
+                        
+                        // 错误处理
+                        function showQRCodeError() {
+                            const ctx = canvas.getContext('2d');
+                            canvas.width = 250;
+                            canvas.height = 250;
+                            
+                            // 绘制错误提示
+                            ctx.fillStyle = '#f8f9fa';
+                            ctx.fillRect(0, 0, 250, 250);
+                            ctx.strokeStyle = '#dee2e6';
+                            ctx.strokeRect(0, 0, 250, 250);
+                            
+                            ctx.fillStyle = '#6c757d';
+                            ctx.font = '16px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('二维码生成失败', 125, 110);
+                            ctx.fillText('请刷新页面重试', 125, 135);
+                            
+                            // 显示链接文本备用方案
+                            ctx.font = '12px Arial';
+                            ctx.fillStyle = '#007bff';
+                            ctx.fillText('链接: ' + data.qrcode.substring(0, 25) + '...', 125, 160);
+                        }
+                    }, 300); // 延长等待时间确保CDN完全加载
+                } else {
+                    throw new Error('生成二维码失败');
+                }
+            } catch (error) {
+                console.error('生成二维码错误:', error);
+                container.innerHTML = `
+                    <div class="error">生成失败，请重试</div>
+                    <button class="generate-qr-btn" onclick="generateQRCode()">
+                        <i class="fas fa-qrcode"></i>
+                        重新生成
+                    </button>
+                `;
+            }
+        }
+
+        // 显示核销码
+        function showRedemptionCode(code) {
+            alert(`核销码: ${code}\n\n请将此码给管理员进行奖品核销`);
+        }
+
+        // 搜索用户（管理员功能）
+        async function searchUser() {
+            const stuId = document.getElementById('searchStuId').value.trim();
+            if (!stuId) {
+                alert('请输入学号');
+                return;
+            }
+
+            // 直接跳转到带参数的信息页面
+            window.location.href = `/info?stuId=${encodeURIComponent(stuId)}`;
+        }
+
+        // 跳转到分发积分页面（管理员功能）
+        function goToModifyPoints() {
+            // 权限二次确认
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+                alert('权限不足，只有管理员可以分发积分');
+                return;
+            }
+
+            console.log('🔍 调试信息:');
+            console.log('- 当前用户:', currentUser);
+            console.log('- 目标学号 (targetStuId):', targetStuId);
+            console.log('- 当前URL参数:', window.location.search);
+            
+            // 如果targetStuId为空，尝试从URL参数重新获取
+            if (!targetStuId) {
+                const urlParams = new URLSearchParams(window.location.search);
+                targetStuId = urlParams.get('stuId');
+                console.log('- 从URL重新获取的学号:', targetStuId);
+            }
+
+            // 如果还是没有targetStuId，尝试从页面显示的学号获取
+            if (!targetStuId) {
+                const stuIdElement = document.getElementById('userStuId');
+                if (stuIdElement) {
+                    targetStuId = stuIdElement.textContent.trim();
+                    console.log('- 从页面元素获取的学号:', targetStuId);
+                }
+            }
+
+            if (targetStuId && targetStuId !== currentUser.stuId) {
+                // 携带学号参数跳转到分发积分页面
+                const jumpUrl = `/modifypoints?stuId=${encodeURIComponent(targetStuId)}`;
+                console.log(`🎯 管理员 ${currentUser.stuId} 将为用户 ${targetStuId} 分发积分`);
+                console.log(`🔗 跳转链接: ${jumpUrl}`);
+                window.location.href = jumpUrl;
+            } else {
+                // 如果没有目标学号或者是自己，直接跳转到分发积分页面
+                console.log('⚠️ 没有有效的目标学号，跳转到空白积分页面');
+                console.log('- targetStuId:', targetStuId);
+                console.log('- currentUser.stuId:', currentUser?.stuId);
+                window.location.href = '/modifypoints';
+            }
+        }
+
+
+
+        // 显示错误信息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorDiv');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // 格式化时间
+        function formatTime(timestamp) {
+            if (!timestamp) return '未知时间';
+            
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString('zh-CN');
+            } catch (e) {
+                return '未知时间';
+            }
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                // 使用现代的 Clipboard API
+                navigator.clipboard.writeText(text).then(function() {
+                    alert('链接已复制到剪贴板！');
+                }, function() {
+                    // 降级到传统方法
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                // 降级到传统方法
+                fallbackCopyTextToClipboard(text);
+            }
+        }
+
+        // 降级复制方法
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            // 避免滚动到底部
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    alert('链接已复制到剪贴板！');
+                } else {
+                    alert('复制失败，请手动复制链接');
+                }
+            } catch (err) {
+                alert('复制失败，请手动复制链接');
+            }
+
+            document.body.removeChild(textArea);
+        }
+
+        // 登出
+        async function logout() {
+            if (confirm('确认要退出登录吗？')) {
+                try {
+                    await fetch('/api/logout', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                } catch (error) {
+                    console.error('登出错误:', error);
+                } finally {
+                    window.location.href = '/login';
+                }
+            }
+        }
+
+        // 调试函数：手动检查和更新按钮显示状态
+        function debugCheckAdminActions() {
+            console.log('🛠️ 手动检查管理员按钮状态:');
+            console.log('当前状态快照:');
+            console.log('- URL:', window.location.href);
+            console.log('- targetStuId:', targetStuId);
+            console.log('- currentUser:', currentUser);
+            
+            const adminActions = document.getElementById('adminActions');
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin') && 
+                targetStuId && targetStuId !== currentUser.stuId) {
+                console.log('✅ 应该显示分发积分按钮');
+                adminActions.style.display = 'flex';
+            } else {
+                console.log('❌ 应该隐藏分发积分按钮');
+                adminActions.style.display = 'none';
+            }
+            
+            return {
+                hasCurrentUser: !!currentUser,
+                isAdmin: currentUser ? (currentUser.role === 'admin' || currentUser.role === 'super_admin') : false,
+                hasTargetStuId: !!targetStuId,
+                isViewingOthers: targetStuId && currentUser ? (targetStuId !== currentUser.stuId) : false,
+                shouldShowButton: currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin') && 
+                                 targetStuId && targetStuId !== currentUser.stuId
+            };
+        }
+
+        // 在控制台暴露调试函数
+        window.debugCheckAdminActions = debugCheckAdminActions;
+    </script>
+    
+
+    
+    <!-- 库加载检测和初始化脚本 -->
+    <script>
+        // 页面加载完成后检测新QR码生成器的可用性
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('📋 新QR码生成器可用性检测:');
+            
+            // 详细检测各个库的状态
+            console.log('🔍 详细库检测:');
+            console.log('  - window.QRCode:', typeof window.QRCode);
+            console.log('  - window.simpleQRGenerator:', typeof window.simpleQRGenerator);
+            console.log('  - window.SimpleQRCodeGenerator:', typeof window.SimpleQRCodeGenerator);
+            console.log('  - window.ReliableQRCode:', typeof window.ReliableQRCode);
+            
+            if (window.simpleQRGenerator) {
+                console.log('  - simpleQRGenerator.generate:', typeof window.simpleQRGenerator.generate);
+                console.log('  - simpleQRGenerator版本:', window.simpleQRGenerator.version);
+            }
+            
+            if (typeof window.QRCode !== 'undefined' && typeof window.simpleQRGenerator !== 'undefined') {
+                console.log('✅ 新QR码生成器加载成功');
+                console.log('📊 可用组件:');
+                console.log('  - QRCode.js: 核心库');
+                console.log('  - SimpleQRCodeGenerator: 包装器');
+                if (typeof window.ReliableQRCode !== 'undefined') console.log('  - ReliableQRCode: 兼容接口');
+                console.log('✅ 准备生成高质量、高容错率QR码');
+            } else {
+                console.error('❌ 新QR码生成器未加载完全，请检查文件路径');
+                console.log('🔄 建议操作:');
+                console.log('  1. 检查/Pages/Common/js/libs/目录下的qrcode.min.js文件');
+                console.log('  2. 检查/Pages/Common/js/libs/目录下的simple-qr-generator.js文件');
+                console.log('  3. 确认文件路径正确');
+            }
+        });
+        
+        // 延迟检测，确保所有CDN库都有机会加载
+        setTimeout(function() {
+            if (typeof QRCode === 'undefined') {
+                console.warn('⚠️ 延迟检测: QRCode.js库仍未加载');
+                console.log('💡 可能的解决方案:');
+                console.log('  - 网络较慢，请等待更长时间');
+                console.log('  - CDN服务暂时不可用');
+                console.log('  - 防火墙阻止了CDN访问');
+            }
+        }, 2000);
+
+        // 管理员功能相关函数
+        
+        // 显示管理员搜索功能（如果用户是管理员）
+        function showAdminSearchIfNeeded(user) {
+            const adminSearchSection = document.getElementById('adminSearchSection');
+            if (user && (user.role === 'admin' || user.role === 'super_admin')) {
+                adminSearchSection.style.display = 'block';
+                console.log('✅ 显示管理员搜索功能');
+            } else {
+                adminSearchSection.style.display = 'none';
+            }
+        }
+
+        // 通过学号搜索用户
+        async function searchUserByStuId() {
+            const stuIdInput = document.getElementById('stuIdInput');
+            const stuId = stuIdInput.value.trim();
+            
+            if (!stuId) {
+                alert('请输入学号');
+                return;
+            }
+            
+            // 检查权限
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+                alert('权限不足');
+                return;
+            }
+            
+            // 跳转到用户信息页面
+            window.location.href = `/info?stuId=${encodeURIComponent(stuId)}`;
+        }
+
+        // 二维码扫描相关变量
+        let qrScanner = null;
+        let scannerStream = null;
+
+        // 开始二维码扫描
+        async function startQRScanner() {
+            try {
+                // 检查权限
+                if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) {
+                    alert('权限不足');
+                    return;
+                }
+
+                // 详细的浏览器支持检测
+                console.log('开始检测浏览器摄像头支持...');
+                console.log('navigator.mediaDevices:', navigator.mediaDevices);
+                console.log('当前协议:', window.location.protocol);
+                console.log('当前主机:', window.location.hostname);
+                
+                // 检查 HTTPS 要求（localhost 除外）
+                const isSecureContext = window.isSecureContext || 
+                                       window.location.protocol === 'https:' || 
+                                       window.location.hostname === 'localhost' || 
+                                       window.location.hostname === '127.0.0.1' ||
+                                       window.location.hostname.startsWith('192.168.') ||
+                                       window.location.hostname.startsWith('10.') ||
+                                       window.location.hostname.endsWith('.local');
+                
+                console.log('是否为安全上下文:', isSecureContext);
+                
+                if (!isSecureContext) {
+                    alert('⚠️ 安全提示\n\n您的网站正在使用非安全的 HTTP 协议。\n现代浏览器要求使用 HTTPS 才能访问摄像头。\n\n请使用以下方式之一：\n1. 通过 localhost 或 127.0.0.1 访问\n2. 配置网站使用 HTTPS\n3. 使用局域网 IP (如 192.168.x.x)');
+                    return;
+                }
+
+                // 检查浏览器 API 支持
+                if (!navigator.mediaDevices) {
+                    alert('⚠️ 浏览器不支持\n\n您的浏览器不支持 mediaDevices API。\n\n建议使用以下浏览器：\n• Chrome 53+\n• Firefox 36+\n• Safari 11+\n• Edge 79+');
+                    return;
+                }
+                
+                if (!navigator.mediaDevices.getUserMedia) {
+                    alert('⚠️ 浏览器不支持\n\n您的浏览器不支持 getUserMedia API。\n请更新到最新版本的浏览器。');
+                    return;
+                }
+
+                const video = document.getElementById('qrScannerVideo');
+                const container = document.getElementById('qrScannerContainer');
+                const scanButton = document.getElementById('scanButton');
+                const stopButton = document.getElementById('stopScanButton');
+
+                // 设置按钮状态
+                scanButton.disabled = true;
+                scanButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 启动中...';
+
+                // 获取可用的摄像头列表
+                let devices;
+                try {
+                    devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    console.log('📹 检测到的摄像头数量:', videoDevices.length);
+                    videoDevices.forEach((device, index) => {
+                        console.log(`摄像头 ${index + 1}:`, device.label || `摄像头 ${index + 1}`, device.deviceId);
+                    });
+                } catch (e) {
+                    console.warn('无法枚举设备:', e);
+                }
+
+                try {
+                    // 首先尝试使用后置摄像头（移动设备）
+                    console.log('🔄 尝试访问后置摄像头...');
+                    scannerStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: { ideal: 'environment' },
+                            width: { ideal: 1280, max: 1920 },
+                            height: { ideal: 720, max: 1080 }
+                        } 
+                    });
+                    console.log('✅ 成功访问后置摄像头');
+                } catch (error) {
+                    console.warn('⚠️ 后置摄像头访问失败，尝试前置摄像头:', error.name);
+                    try {
+                        // 如果后置摄像头失败，尝试前置摄像头
+                        console.log('🔄 尝试访问前置摄像头...');
+                        scannerStream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                facingMode: { ideal: 'user' },
+                                width: { ideal: 1280, max: 1920 },
+                                height: { ideal: 720, max: 1080 }
+                            } 
+                        });
+                        console.log('✅ 成功访问前置摄像头');
+                    } catch (error2) {
+                        console.warn('⚠️ 前置摄像头访问失败，尝试默认摄像头:', error2.name);
+                        // 最后尝试不指定摄像头类型（使用默认配置）
+                        console.log('🔄 尝试访问默认摄像头...');
+                        scannerStream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                width: { ideal: 1280, max: 1920 },
+                                height: { ideal: 720, max: 1080 }
+                            } 
+                        });
+                        console.log('✅ 成功访问默认摄像头');
+                    }
+                }
+                
+                // 设置视频源
+                video.srcObject = scannerStream;
+                console.log('📹 视频流已设置到 video 元素');
+                
+                // 等待视频元数据加载完成
+                video.onloadedmetadata = async function() {
+                    console.log('📊 视频元数据已加载');
+                    try {
+                        await video.play();
+                        console.log('▶️ 视频播放成功');
+                        console.log('📐 视频实际尺寸:', video.videoWidth, 'x', video.videoHeight);
+                        
+                        // 显示扫描器界面
+                        container.style.display = 'block';
+                        scanButton.style.display = 'none';
+                        stopButton.style.display = 'inline-block';
+                        scanButton.disabled = false;
+                        scanButton.innerHTML = '<i class="fas fa-camera"></i> 开始扫描';
+                        
+                        // 初始化二维码检测
+                        initQRDetection(video);
+                    } catch (playError) {
+                        console.error('❌ 视频播放失败:', playError);
+                        alert('视频播放失败: ' + playError.message);
+                        stopQRScanner();
+                    }
+                };
+                
+                // 处理视频加载错误
+                video.onerror = function(e) {
+                    console.error('❌ 视频加载错误:', e);
+                    alert('视频加载失败，请重试');
+                    stopQRScanner();
+                };
+
+            } catch (error) {
+                console.error('启动摄像头失败:', error);
+                console.error('错误名称:', error.name);
+                console.error('错误消息:', error.message);
+                
+                // 重置按钮状态
+                const scanButton = document.getElementById('scanButton');
+                scanButton.disabled = false;
+                scanButton.innerHTML = '<i class="fas fa-camera"></i> 开始扫描';
+                
+                // 提供更详细的错误信息
+                let errorMessage = '📷 无法访问摄像头\n\n';
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMessage += '❌ 权限被拒绝\n\n';
+                    errorMessage += '请按照以下步骤操作：\n';
+                    errorMessage += '1. 点击地址栏左侧的 🔒 或 ⓘ 图标\n';
+                    errorMessage += '2. 找到"摄像头"权限设置\n';
+                    errorMessage += '3. 选择"允许"\n';
+                    errorMessage += '4. 刷新页面后重试\n\n';
+                    errorMessage += '💡 提示：有些浏览器需要您手动允许每个网站访问摄像头';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMessage += '❌ 未检测到摄像头设备\n\n';
+                    errorMessage += '请检查：\n';
+                    errorMessage += '• 是否连接了摄像头（笔记本通常内置）\n';
+                    errorMessage += '• 设备管理器中摄像头是否正常\n';
+                    errorMessage += '• 其他应用是否能使用摄像头';
+                } else if (error.name === 'NotSupportedError' || error.name === 'TypeError') {
+                    errorMessage += '❌ 浏览器不支持\n\n';
+                    errorMessage += '您的浏览器版本过旧或不支持摄像头 API。\n\n';
+                    errorMessage += '建议使用最新版本的：\n';
+                    errorMessage += '• Google Chrome\n';
+                    errorMessage += '• Microsoft Edge\n';
+                    errorMessage += '• Mozilla Firefox\n';
+                    errorMessage += '• Safari (iOS/macOS)';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMessage += '❌ 摄像头已被占用\n\n';
+                    errorMessage += '摄像头正在被其他程序使用。\n\n';
+                    errorMessage += '请关闭以下可能占用摄像头的程序：\n';
+                    errorMessage += '• 视频会议软件（Zoom、Teams 等）\n';
+                    errorMessage += '• 其他浏览器标签页\n';
+                    errorMessage += '• 摄像头相关应用\n';
+                    errorMessage += '\n然后刷新页面重试';
+                } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+                    errorMessage += '❌ 摄像头不满足要求\n\n';
+                    errorMessage += '您的摄像头不支持所需的分辨率或配置。\n';
+                    errorMessage += '尝试使用其他摄像头或更新驱动程序。';
+                } else if (error.name === 'SecurityError') {
+                    errorMessage += '❌ 安全限制\n\n';
+                    errorMessage += '当前环境不允许访问摄像头。\n\n';
+                    errorMessage += '可能的原因：\n';
+                    errorMessage += '• 使用了不安全的 HTTP 协议（需要 HTTPS）\n';
+                    errorMessage += '• 浏览器安全设置阻止了访问\n';
+                    errorMessage += '• iframe 中的安全限制';
+                } else {
+                    errorMessage += `❌ 未知错误\n\n`;
+                    errorMessage += `错误类型: ${error.name || '未知'}\n`;
+                    errorMessage += `错误信息: ${error.message || '无详细信息'}\n\n`;
+                    errorMessage += '请尝试：\n';
+                    errorMessage += '• 刷新页面\n';
+                    errorMessage += '• 重启浏览器\n';
+                    errorMessage += '• 使用其他浏览器';
+                }
+                alert(errorMessage);
+            }
+        }
+
+        // ========== 新增：上传二维码图片扫描（无需摄像头）==========
+        
+        /**
+         * 处理上传的二维码图片
+         * 这个方法不需要摄像头，完全在前端处理
+         */
+        async function handleQRImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const statusDiv = document.getElementById('uploadStatus');
+            const previewDiv = document.getElementById('uploadedImagePreview');
+            const uploadedImage = document.getElementById('uploadedImage');
+            
+            // 显示状态
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status info';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在识别二维码...';
+            
+            console.log('📷 开始处理上传的图片:', file.name);
+            
+            try {
+                // 检查 jsQR 库是否加载
+                if (typeof jsQR === 'undefined') {
+                    throw new Error('二维码识别库未加载，请刷新页面重试');
+                }
+                
+                // 读取图片
+                const imageData = await readImageFile(file);
+                
+                // 显示预览
+                uploadedImage.src = imageData;
+                previewDiv.style.display = 'block';
+                
+                // 创建图片对象
+                const img = new Image();
+                img.onload = async function() {
+                    console.log('✅ 图片加载完成，尺寸:', img.width, 'x', img.height);
+                    
+                    // 更新状态
+                    statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在识别（使用增强算法）...';
+                    
+                    try {
+                        // 使用增强识别算法（支持多次尝试和图像预处理）
+                        const result = await tryRecognizeQRCode(img);
+                        
+                        if (result && result.data) {
+                            console.log('🎉 识别成功！二维码内容:', result.data);
+                            console.log('识别方法:', result.method);
+                            statusDiv.className = 'status success';
+                            statusDiv.innerHTML = `
+                                <i class="fas fa-check-circle"></i> 识别成功！正在跳转...<br>
+                                <small style="opacity: 0.7;">识别方法: ${result.method}</small>
+                            `;
+                            
+                            // 处理二维码内容
+                            processQRCodeResult(result.data);
+                        } else {
+                            console.warn('❌ 所有识别方法都失败了');
+                            statusDiv.className = 'status error';
+                            statusDiv.innerHTML = `
+                                <i class="fas fa-exclamation-triangle"></i> 未能识别二维码<br>
+                                <small>
+                                    • 请确保图片清晰<br>
+                                    • 二维码完整可见<br>
+                                    • 光线充足，避免反光<br>
+                                    • 二维码占图片至少 30%<br>
+                                    • 尝试重新拍照或使用学号查询
+                                </small>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error('❌ 识别过程出错:', error);
+                        statusDiv.className = 'status error';
+                        statusDiv.innerHTML = `
+                            <i class="fas fa-exclamation-circle"></i> 识别失败: ${error.message}<br>
+                            <small>请尝试其他图片或使用学号查询</small>
+                        `;
+                    }
+                };
+                
+                img.onerror = function() {
+                    throw new Error('图片加载失败');
+                };
+                
+                img.src = imageData;
+                
+            } catch (error) {
+                console.error('❌ 处理图片失败:', error);
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <i class="fas fa-exclamation-circle"></i> 处理失败: ${error.message}<br>
+                    <small>请尝试其他图片或使用学号查询</small>
+                `;
+                previewDiv.style.display = 'none';
+            }
+        }
+        
+        /**
+         * 增强的二维码识别算法
+         * 使用多种图像处理方法和参数组合，提高识别成功率
+         */
+        async function tryRecognizeQRCode(img) {
+            const canvas = document.getElementById('uploadCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置 canvas 尺寸
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // 定义多种识别策略
+            const strategies = [
+                // 策略 1: 原图直接识别
+                {
+                    name: '原图',
+                    process: (ctx, width, height) => {
+                        ctx.drawImage(img, 0, 0);
+                        return ctx.getImageData(0, 0, width, height);
+                    },
+                    options: { inversionAttempts: "dontInvert" }
+                },
+                
+                // 策略 2: 原图 + 尝试反色
+                {
+                    name: '原图（尝试反色）',
+                    process: (ctx, width, height) => {
+                        ctx.drawImage(img, 0, 0);
+                        return ctx.getImageData(0, 0, width, height);
+                    },
+                    options: { inversionAttempts: "attemptBoth" }
+                },
+                
+                // 策略 3: 增强对比度
+                {
+                    name: '对比度增强',
+                    process: (ctx, width, height) => {
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, width, height);
+                        enhanceContrast(imageData, 1.5);
+                        ctx.putImageData(imageData, 0, 0);
+                        return ctx.getImageData(0, 0, width, height);
+                    },
+                    options: { inversionAttempts: "attemptBoth" }
+                },
+                
+                // 策略 4: 灰度化 + 对比度增强
+                {
+                    name: '灰度化+对比度',
+                    process: (ctx, width, height) => {
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, width, height);
+                        grayscale(imageData);
+                        enhanceContrast(imageData, 2.0);
+                        ctx.putImageData(imageData, 0, 0);
+                        return ctx.getImageData(0, 0, width, height);
+                    },
+                    options: { inversionAttempts: "attemptBoth" }
+                },
+                
+                // 策略 5: 二值化处理
+                {
+                    name: '二值化',
+                    process: (ctx, width, height) => {
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, width, height);
+                        grayscale(imageData);
+                        binarize(imageData, 128);
+                        ctx.putImageData(imageData, 0, 0);
+                        return ctx.getImageData(0, 0, width, height);
+                    },
+                    options: { inversionAttempts: "attemptBoth" }
+                },
+                
+                // 策略 6: 自适应二值化
+                {
+                    name: '自适应二值化',
+                    process: (ctx, width, height) => {
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, width, height);
+                        grayscale(imageData);
+                        const threshold = calculateOtsuThreshold(imageData);
+                        binarize(imageData, threshold);
+                        ctx.putImageData(imageData, 0, 0);
+                        return ctx.getImageData(0, 0, width, height);
+                    },
+                    options: { inversionAttempts: "attemptBoth" }
+                },
+                
+                // 策略 7: 缩小图片尺寸（提高处理速度）
+                {
+                    name: '缩小尺寸',
+                    process: (ctx, width, height) => {
+                        const scale = Math.min(1, 800 / Math.max(width, height));
+                        const newWidth = Math.floor(width * scale);
+                        const newHeight = Math.floor(height * scale);
+                        canvas.width = newWidth;
+                        canvas.height = newHeight;
+                        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                        const imageData = ctx.getImageData(0, 0, newWidth, newHeight);
+                        enhanceContrast(imageData, 1.5);
+                        return imageData;
+                    },
+                    options: { inversionAttempts: "attemptBoth" }
+                }
+            ];
+            
+            // 依次尝试每种策略
+            for (let i = 0; i < strategies.length; i++) {
+                const strategy = strategies[i];
+                console.log(`🔍 尝试策略 ${i + 1}/${strategies.length}: ${strategy.name}...`);
+                
+                try {
+                    // 重置 canvas 尺寸
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // 处理图像
+                    const imageData = strategy.process(ctx, canvas.width, canvas.height);
+                    
+                    // 尝试识别
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, strategy.options);
+                    
+                    if (code && code.data) {
+                        console.log(`✅ 识别成功！使用策略: ${strategy.name}`);
+                        return {
+                            data: code.data,
+                            method: strategy.name,
+                            location: code.location
+                        };
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ 策略 ${strategy.name} 失败:`, error);
+                }
+            }
+            
+            console.log('❌ 所有识别策略都失败了');
+            return null;
+        }
+        
+        /**
+         * 灰度化处理
+         */
+        function grayscale(imageData) {
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                data[i] = gray;
+                data[i + 1] = gray;
+                data[i + 2] = gray;
+            }
+        }
+        
+        /**
+         * 增强对比度
+         */
+        function enhanceContrast(imageData, factor) {
+            const data = imageData.data;
+            factor = factor || 1.5;
+            const intercept = 128 * (1 - factor);
+            
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, Math.max(0, data[i] * factor + intercept));
+                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * factor + intercept));
+                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * factor + intercept));
+            }
+        }
+        
+        /**
+         * 二值化处理
+         */
+        function binarize(imageData, threshold) {
+            const data = imageData.data;
+            threshold = threshold || 128;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                const binary = gray > threshold ? 255 : 0;
+                data[i] = binary;
+                data[i + 1] = binary;
+                data[i + 2] = binary;
+            }
+        }
+        
+        /**
+         * 计算 Otsu 阈值（自适应二值化）
+         */
+        function calculateOtsuThreshold(imageData) {
+            const data = imageData.data;
+            const histogram = new Array(256).fill(0);
+            const total = imageData.width * imageData.height;
+            
+            // 构建灰度直方图
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = Math.floor(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+                histogram[gray]++;
+            }
+            
+            // 计算 Otsu 阈值
+            let sum = 0;
+            for (let i = 0; i < 256; i++) {
+                sum += i * histogram[i];
+            }
+            
+            let sumB = 0;
+            let wB = 0;
+            let wF = 0;
+            let maxVariance = 0;
+            let threshold = 0;
+            
+            for (let i = 0; i < 256; i++) {
+                wB += histogram[i];
+                if (wB === 0) continue;
+                
+                wF = total - wB;
+                if (wF === 0) break;
+                
+                sumB += i * histogram[i];
+                const mB = sumB / wB;
+                const mF = (sum - sumB) / wF;
+                const variance = wB * wF * (mB - mF) * (mB - mF);
+                
+                if (variance > maxVariance) {
+                    maxVariance = variance;
+                    threshold = i;
+                }
+            }
+            
+            console.log('📊 Otsu 阈值:', threshold);
+            return threshold;
+        }
+        
+        /**
+         * 读取图片文件为 Data URL
+         */
+        function readImageFile(file) {
+            return new Promise((resolve, reject) => {
+                // 检查文件类型
+                if (!file.type.startsWith('image/')) {
+                    reject(new Error('请上传图片文件'));
+                    return;
+                }
+                
+                // 检查文件大小（限制 10MB）
+                if (file.size > 10 * 1024 * 1024) {
+                    reject(new Error('图片太大，请选择小于 10MB 的图片'));
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    resolve(e.target.result);
+                };
+                reader.onerror = function() {
+                    reject(new Error('读取文件失败'));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 停止二维码扫描
+        function stopQRScanner() {
+            if (scannerStream) {
+                scannerStream.getTracks().forEach(track => track.stop());
+                scannerStream = null;
+            }
+
+            const container = document.getElementById('qrScannerContainer');
+            const scanButton = document.getElementById('scanButton');
+            const stopButton = document.getElementById('stopScanButton');
+
+            container.style.display = 'none';
+            scanButton.style.display = 'inline-block';
+            stopButton.style.display = 'none';
+
+            if (qrScanner) {
+                clearInterval(qrScanner);
+                qrScanner = null;
+            }
+        }
+
+        // 初始化二维码检测
+        function initQRDetection(video) {
+            // 检查 jsQR 库是否加载
+            if (typeof jsQR === 'undefined') {
+                console.error('❌ jsQR 库未加载！无法进行二维码识别');
+                alert('⚠️ 二维码识别库加载失败\n\n请刷新页面重试，或联系管理员。');
+                stopQRScanner();
+                return;
+            }
+            
+            console.log('✅ jsQR 库已加载，版本:', typeof jsQR);
+            
+            // 等待视频准备就绪
+            video.addEventListener('canplay', function() {
+                console.log('✅ 视频已准备就绪，开始二维码检测');
+                console.log('视频尺寸:', video.videoWidth, 'x', video.videoHeight);
+                
+                // 创建用于扫描的 canvas
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                
+                // 扫描计数器（用于调试）
+                let scanCount = 0;
+                let lastScanTime = Date.now();
+                
+                // 使用更频繁的检测间隔
+                qrScanner = setInterval(() => {
+                    if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+                        try {
+                            scanCount++;
+                            
+                            // 每5秒输出一次扫描状态
+                            const now = Date.now();
+                            if (now - lastScanTime > 5000) {
+                                console.log(`📷 正在扫描... (已扫描 ${scanCount} 次)`);
+                                lastScanTime = now;
+                            }
+                            
+                            // 设置 canvas 尺寸（只在第一次或尺寸改变时设置）
+                            if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                                canvas.width = video.videoWidth;
+                                canvas.height = video.videoHeight;
+                                console.log('📐 Canvas 尺寸已设置:', canvas.width, 'x', canvas.height);
+                            }
+                            
+                            // 绘制当前帧到 canvas
+                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            
+                            // 获取图像数据
+                            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                            
+                            // 使用 jsQR 解码二维码
+                            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                                inversionAttempts: "dontInvert",
+                            });
+                            
+                            if (code && code.data) {
+                                console.log('🎉 检测到二维码!');
+                                console.log('二维码内容:', code.data);
+                                console.log('二维码位置:', code.location);
+                                processQRCodeResult(code.data);
+                            }
+                        } catch (e) {
+                            console.error('❌ 二维码检测过程中出错:', e);
+                        }
+                    } else {
+                        console.warn('⚠️ 视频未准备就绪:', {
+                            readyState: video.readyState,
+                            videoWidth: video.videoWidth,
+                            videoHeight: video.videoHeight
+                        });
+                    }
+                }, 300); // 每300ms检测一次，提高响应速度
+                
+                console.log('✅ 二维码检测已启动');
+            }, { once: true }); // 只监听一次 canplay 事件
+        }
+
+        // 处理二维码扫描结果
+        function processQRCodeResult(qrData) {
+            console.log('扫描到二维码:', qrData);
+            
+            // 停止扫描
+            stopQRScanner();
+            
+            try {
+                // 解析二维码格式：{nfc_base_url}info?stuId={stu_id}
+                const url = new URL(qrData);
+                const stuId = url.searchParams.get('stuId');
+                
+                if (stuId) {
+                    // 跳转到用户信息页面
+                    window.location.href = `/info?stuId=${encodeURIComponent(stuId)}`;
+                } else {
+                    alert('无效的二维码格式');
+                }
+            } catch (error) {
+                console.error('解析二维码失败:', error);
+                alert('无法识别的二维码格式');
+            }
+        }
+    </script>
+    
+    <!-- 引入统一导航栏组件 -->
+    <script src="/Pages/Common/js/navigation.js"></script>
+</body>
+</html>

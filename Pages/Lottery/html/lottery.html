@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NISA Welcome System - 抽奖</title>
+    <!-- 引入通用基础样式 -->
+    <link rel="stylesheet" href="/Pages/Common/css/base.css">
+    <!-- 引入抽奖页面专用样式 -->
+    <link rel="stylesheet" href="/Pages/Lottery/css/lottery.css?v=20251003_fix3">
+    <!-- Font Awesome 图标库 -->
+    <link href="/Pages/Common/libs/font-awesome/all.min.css" rel="stylesheet">
+    
+    <!-- 强制修复抽奖按钮垂直布局 -->
+    <style>
+        .lottery-button-area {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 2rem !important;
+            width: 100% !important;
+        }
+        
+        @media (max-width: 768px) {
+            .lottery-button-area {
+                gap: 1.5rem !important;
+            }
+            
+            .user-points-display {
+                width: 100% !important;
+                max-width: 400px !important;
+                background: rgba(255, 255, 255, 0.1) !important;
+                backdrop-filter: blur(10px) !important;
+                border-radius: 15px !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+                padding: 1rem 1.5rem !important;
+            }
+            
+            .lottery-button-container {
+                width: 100% !important;
+                max-width: 400px !important;
+                display: flex !important;
+                justify-content: center !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .lottery-button-area {
+                gap: 1rem !important;
+            }
+            
+            .user-points-display {
+                max-width: 320px !important;
+                padding: 0.8rem 1rem !important;
+            }
+            
+            .lottery-button-container {
+                max-width: 320px !important;
+            }
+            
+            /* 修复奖品卡片显示 */
+            .prize-card {
+                height: auto !important;
+                min-height: 140px !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            
+            .prize-info {
+                padding: 0 !important;
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+            
+            .prize-name {
+                font-size: 0.75rem !important;
+                line-height: 1.2 !important;
+                margin-bottom: 0.2rem !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                display: -webkit-box !important;
+                -webkit-line-clamp: 2 !important;
+                -webkit-box-orient: vertical !important;
+            }
+            
+            .prize-description {
+                font-size: 0.7rem !important;
+                line-height: 1.1 !important;
+                margin-bottom: 0.3rem !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                display: -webkit-box !important;
+                -webkit-line-clamp: 1 !important;
+                -webkit-box-orient: vertical !important;
+            }
+            
+            .prize-quantity {
+                font-size: 0.7rem !important;
+                margin-top: auto !important;
+            }
+        }
+        
+        @media (max-width: 768px) and (min-width: 481px) {
+            /* 中等屏幕奖品卡片优化 */
+            .prize-card {
+                height: auto !important;
+                min-height: 160px !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            
+            .prize-info {
+                padding: 0 !important;
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+            
+            .prize-name {
+                font-size: 0.85rem !important;
+                line-height: 1.2 !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                display: -webkit-box !important;
+                -webkit-line-clamp: 2 !important;
+                -webkit-box-orient: vertical !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 统一导航栏将通过JavaScript自动插入 -->
+    
+    <!-- 主容器 -->
+    <div class="page-container">
+        <main class="content-wrapper">
+        <!-- 奖品展示区 -->
+        <section class="prizes-section">
+            <!-- 奖品滚动展示 -->
+            <div class="prizes-carousel">
+                <div class="carousel-track" id="carouselTrack">
+                    <div class="loading-prizes">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>加载奖品中...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 抽奖区域 -->
+        <section class="lottery-section">
+            <div class="lottery-container">
+                <!-- 抽奖操作区 - 居中布局 -->
+                <div class="lottery-action-area">
+                    <div class="lottery-info-panel">
+                        <h3><i class="fas fa-info-circle"></i> 抽奖说明</h3>
+                        <ul>
+                            <li>每次抽奖消耗 <strong id="lotteryCostDisplay">1</strong> 积分</li>
+                            <li>奖品数量有限，先到先得</li>
+                            <li>抽中奖品后可在"个人信息"中查看</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- 抽奖按钮和积分显示区域 -->
+                    <div class="lottery-button-area" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 2rem !important; width: 100% !important;">
+                        <!-- 用户积分显示 -->
+                        <div class="user-points-display" id="userPointsDisplay" style="display: none;">
+                            <div class="points-info">
+                                <span class="points-label">当前积分：</span>
+                                <span id="currentPoints" class="points-value">0</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 抽奖按钮 -->
+                        <div class="lottery-button-container">
+                            <button class="lottery-btn" id="lotteryBtn" onclick="startLottery()">
+                                <div class="btn-background"></div>
+                                <div class="btn-content">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-gift"></i>
+                                    </div>
+                                    <div class="btn-text-container">
+                                        <span class="btn-main-text">开始抽奖</span>
+                                        <span class="btn-sub-text">消耗 <span id="lotteryCostInBtn">1</span> 积分</span>
+                                    </div>
+                                </div>
+                                <div class="btn-shine"></div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 消息提示模态框 -->
+    <div class="modal" id="messageModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">
+                <h3 id="modalTitle">提示</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <p id="modalMessage">消息内容</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/Pages/Common/js/utils.js"></script>
+    <script>
+        let currentUser = null;
+        let prizesData = [];
+        let lotteryCost = 1; // 默认值设为配置文件中的值
+        let isDrawing = false;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+        });
+
+        // 初始化页面
+        async function initializePage() {
+            await loadLotteryCost(); // 首先加载抽奖成本
+            await checkUserLogin();
+            await loadPrizes();
+        }
+
+        // 检查用户登录状态
+        async function checkUserLogin() {
+            try {
+                console.log('🔍 开始检查用户登录状态...');
+                
+                // 检查本地cookie
+                const cookies = document.cookie;
+                console.log('🍪 当前cookies:', cookies);
+                
+                const response = await fetch('/api/user/status', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                console.log('📡 用户状态API响应状态:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📋 用户状态API响应数据:', data);
+                    
+                    if (data.success && data.logged_in && data.user) {
+                        console.log('✅ 用户已登录:', data.user);
+                        currentUser = data.user;
+                        updateUserInterface(true);
+                        return;
+                    } else {
+                        console.log('❌ 用户未登录或数据无效:', data);
+                    }
+                } else {
+                    console.log('❌ 用户状态API请求失败:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.error('❌ 检查用户登录状态时发生错误:', error);
+            }
+            
+            console.log('📝 设置为未登录状态');
+            currentUser = null;
+            updateUserInterface(false);
+        }
+
+        // 更新用户界面
+        function updateUserInterface(isLoggedIn) {
+            const userInfo = document.getElementById('userInfo');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const profileBtn = document.getElementById('profileBtn');
+            const userPointsDisplay = document.getElementById('userPointsDisplay');
+
+            if (isLoggedIn && currentUser) {
+                // 已登录状态
+                if (document.getElementById('userName')) {
+                    document.getElementById('userName').textContent = currentUser.stuId;
+                }
+                if (document.getElementById('userPoints')) {
+                    document.getElementById('userPoints').textContent = `${currentUser.points} 积分`;
+                }
+                if (document.getElementById('currentPoints')) {
+                    document.getElementById('currentPoints').textContent = currentUser.points;
+                }
+                
+                if (userInfo) userInfo.style.display = 'inline';
+                if (loginBtn) loginBtn.style.display = 'none';
+                if (logoutBtn) logoutBtn.style.display = 'inline-block';
+                if (profileBtn) profileBtn.style.display = 'inline-block';
+                if (userPointsDisplay) userPointsDisplay.style.display = 'block';
+
+                // 更新抽奖按钮状态
+                updateLotteryButton();
+            } else {
+                // 未登录状态
+                if (userInfo) userInfo.style.display = 'none';
+                if (loginBtn) loginBtn.style.display = 'inline-block';
+                if (logoutBtn) logoutBtn.style.display = 'none';
+                if (profileBtn) profileBtn.style.display = 'none';
+                if (userPointsDisplay) userPointsDisplay.style.display = 'none';
+
+                // 重置抽奖按钮
+                resetLotteryButton();
+            }
+        }
+
+        // 加载奖品列表
+        async function loadPrizes() {
+            try {
+                const response = await fetch('/api/lottery/prizes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    prizesData = data.prizes;
+                    displayPrizes(prizesData);
+                } else {
+                    showNoPrizes();
+                }
+            } catch (error) {
+                console.error('加载奖品失败:', error);
+                showNoPrizes();
+            }
+        }
+
+        // 显示奖品
+        function displayPrizes(prizes) {
+            const track = document.getElementById('carouselTrack');
+            
+            if (!prizes || prizes.length === 0) {
+                showNoPrizes();
+                return;
+            }
+
+            // 生成奖品卡片HTML
+            let html = '';
+            prizes.forEach(prize => {
+                // 根据库存量决定显示样式
+                const quantityClass = prize.quantity <= 0 ? 'out-of-stock' : '';
+                const quantityText = prize.quantity <= 0 ? '已抽完' : `剩余: ${prize.quantity}`;
+                const quantityColor = prize.quantity <= 0 ? 'color: #e74c3c;' : 'color: #27ae60;';
+                
+                html += `
+                    <div class="prize-card ${quantityClass}">
+                        <div class="prize-image">
+                            <img src="${prize.image || '/Assest/Prize/default.png'}" 
+                                 alt="${prize.name}" 
+                                 onerror="this.src='/Assest/Prize/default.png'">
+                            ${prize.quantity <= 0 ? '<div class="sold-out-badge">已抽完</div>' : ''}
+                        </div>
+                        <div class="prize-info">
+                            <h3 class="prize-name">${prize.name}</h3>
+                            <p class="prize-description">${prize.description || ''}</p>
+                            <div class="prize-quantity" style="${quantityColor}">
+                                <i class="fas fa-box"></i>
+                                <span>${quantityText}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 关键：复制多次奖品列表确保无缝循环
+            // 复制2份完全相同的内容，这样当第一份滚动完（-50%）时，第二份刚好接上
+            track.innerHTML = html + html;
+            
+            // 重置动画以确保从头开始
+            track.style.animation = 'none';
+            // 强制浏览器重绘（触发回流）
+            void track.offsetWidth;
+            // 重新应用动画 - 15秒完成一个循环，速度更快
+            track.style.animation = 'seamless-scroll 15s linear infinite';
+            
+            console.log(`✅ 奖品展示已加载: ${prizes.length} 个奖品 x 2 = ${prizes.length * 2} 张卡片`);
+        }
+
+        // 显示无奖品状态
+        function showNoPrizes() {
+            const track = document.getElementById('carouselTrack');
+            track.innerHTML = `
+                <div class="no-prizes-message">
+                    <i class="fas fa-gift"></i>
+                    <p>暂无可抽奖品</p>
+                </div>
+            `;
+        }
+
+        // 加载抽奖消耗积分
+        async function loadLotteryCost() {
+            try {
+                const response = await fetch('/api/lottery/cost');
+                const data = await response.json();
+                
+                if (data.success) {
+                    lotteryCost = data.cost;
+                    // 更新各个地方的积分显示
+                    const costElements = ['lotteryCostInBtn', 'lotteryCostDisplay'];
+                    costElements.forEach(id => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            element.textContent = lotteryCost;
+                        }
+                    });
+                    
+                    if (currentUser) {
+                        updateLotteryButton();
+                    }
+                }
+            } catch (error) {
+                console.error('加载抽奖积分失败:', error);
+            }
+        }
+
+        // 开始抽奖
+        async function startLottery() {
+            if (isDrawing) return;
+
+            // 检查登录状态
+            if (!currentUser) {
+                showModal('需要登录', '请先登录后再进行抽奖', 'warning');
+                return;
+            }
+
+            // 检查权限（只有普通用户可以抽奖）
+            if (currentUser.role !== 'user') {
+                showModal('权限不足', '只有普通会员可以参与抽奖', 'error');
+                return;
+            }
+
+            // 检查积分
+            if (currentUser.points < lotteryCost) {
+                showModal('积分不足', `抽奖需要 ${lotteryCost} 积分，您当前只有 ${currentUser.points} 积分`, 'error');
+                return;
+            }
+
+            // 检查是否有可用奖品
+            if (!prizesData || prizesData.length === 0) {
+                showModal('暂无奖品', '当前没有可抽奖品，请稍后再试', 'warning');
+                return;
+            }
+
+            isDrawing = true;
+            
+            // 显示抽奖动画
+            showLotteryAnimation();
+
+            try {
+                const response = await fetch('/api/lottery/draw', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                console.log('🎲 抽奖API响应:', data);
+                
+                if (response.ok && data.success) {
+                    // 抽奖成功 - 延迟显示结果，确保用户看到"抽奖中"状态
+                    setTimeout(() => {
+                        hideLotteryAnimation();
+                        showLotteryResult(data);
+                    }, 500);
+                    
+                    // 更新用户积分 - 兼容驼峰和下划线命名
+                    const remainingPoints = data.remainingPoints !== undefined ? data.remainingPoints : data.remaining_points;
+                    if (remainingPoints !== undefined) {
+                        currentUser.points = remainingPoints;
+                        // 立即更新显示
+                        document.getElementById('currentPoints').textContent = remainingPoints;
+                    }
+                    updateUserInterface(true);
+                    
+                    // 重新加载奖品列表（更新库存）
+                    await loadPrizes();
+                } else {
+                    setTimeout(() => {
+                        hideLotteryAnimation();
+                        showModal('抽奖失败', data.detail || data.message || '抽奖失败，请重试', 'error');
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('抽奖错误:', error);
+                setTimeout(() => {
+                    hideLotteryAnimation();
+                    showModal('网络错误', '网络连接失败，请稍后重试', 'error');
+                }, 2000);
+            } finally {
+                isDrawing = false;
+            }
+        }
+
+        // 显示抽奖动画
+        function showLotteryAnimation() {
+            // 禁用抽奖按钮并显示"抽奖中..."
+            const btn = document.getElementById('lotteryBtn');
+            if (btn) {
+                btn.classList.add('disabled');
+                btn.disabled = true;
+                const btnMainText = btn.querySelector('.btn-main-text');
+                if (btnMainText) {
+                    btnMainText.textContent = '抽奖中...';
+                }
+            }
+        }
+
+        // 隐藏抽奖动画
+        function hideLotteryAnimation() {
+            // 恢复抽奖按钮
+            const btn = document.getElementById('lotteryBtn');
+            if (btn) {
+                btn.classList.remove('disabled');
+                btn.disabled = false;
+                updateLotteryButton();
+            }
+        }
+
+        // 显示抽奖结果
+        function showLotteryResult(data) {
+            console.log('🎁 显示抽奖结果:', data);
+            
+            // 获取奖品数据，处理可能的命名差异
+            const prize = data.prize || {};
+            const prizeName = prize.name || '未知奖品';
+            let prizeImage = prize.image || prize.photo || '';
+            
+            // 处理图片路径：如果只是文件名，添加完整路径
+            if (prizeImage && !prizeImage.startsWith('http') && !prizeImage.startsWith('/')) {
+                prizeImage = `/Assest/Prize/${prizeImage}`;
+            }
+            
+            console.log('🖼️ 奖品图片路径:', prizeImage);
+            
+            // 构建包含奖品图片和名称的HTML内容
+            const prizeContent = `
+                <div style="text-align: center; padding: 20px 0;">
+                    ${prizeImage ? 
+                        `<div style="margin-bottom: 20px;">
+                            <img src="${prizeImage}" 
+                                 alt="${prizeName}"
+                                 style="max-width: 200px; max-height: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+                                 onerror="this.parentElement.innerHTML='<div style=\\'width: 200px; height: 200px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;\\'><i class=\\'fas fa-gift fa-4x\\'style=\\'color: white;\\'></i></div>'">
+                         </div>` 
+                        : `<div style="width: 200px; height: 200px; margin: 0 auto 20px auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                               <i class="fas fa-gift fa-4x" style="color: white;"></i>
+                           </div>`
+                    }
+                    <h3 style="font-size: 1.5em; color: #333; margin: 10px 0; font-weight: bold;">
+                        ${prizeName}
+                    </h3>
+                </div>
+            `;
+            
+            // 使用modal展示抽奖结果
+            showModal('🎉 恭喜中奖！', prizeContent, 'success');
+            
+            // 更新用户积分显示
+            if (data.remainingPoints !== undefined || data.remaining_points !== undefined) {
+                const remainingPoints = data.remainingPoints !== undefined ? data.remainingPoints : data.remaining_points;
+                if (currentUser) {
+                    currentUser.points = remainingPoints;
+                    updatePointsDisplay();
+                }
+            }
+        }
+        
+        // 更新积分显示函数
+        function updatePointsDisplay() {
+            if (currentUser && currentUser.points !== undefined) {
+                const pointsElement = document.getElementById('currentPoints');
+                if (pointsElement) {
+                    pointsElement.textContent = currentUser.points;
+                }
+                // 同时更新抽奖按钮状态
+                updateLotteryButton();
+            }
+        }
+
+        // 更新抽奖按钮状态
+        function updateLotteryButton() {
+            const btn = document.getElementById('lotteryBtn');
+            if (!btn) return; // 防止空指针错误
+            
+            const btnMainText = btn.querySelector('.btn-main-text');
+            const btnSubText = btn.querySelector('.btn-sub-text');
+            
+            if (!btnMainText) return; // 防止空指针错误
+            
+            if (!currentUser) {
+                btnMainText.textContent = '请先登录';
+                if (btnSubText) btnSubText.textContent = '';
+                btn.classList.add('disabled');
+                btn.disabled = true;
+            } else if (currentUser.role !== 'user') {
+                btnMainText.textContent = '仅限普通会员';
+                if (btnSubText) btnSubText.textContent = '';
+                btn.classList.add('disabled');
+                btn.disabled = true;
+            } else if (currentUser.points < lotteryCost) {
+                btnMainText.textContent = '积分不足';
+                if (btnSubText) btnSubText.textContent = `需要 ${lotteryCost} 积分`;
+                btn.classList.add('disabled');
+                btn.disabled = true;
+            } else {
+                btnMainText.textContent = '开始抽奖';
+                if (btnSubText) btnSubText.innerHTML = `消耗 <span id="lotteryCostInBtn">${lotteryCost}</span> 积分`;
+                btn.classList.remove('disabled');
+                btn.disabled = false;
+            }
+        }
+
+        // 重置抽奖按钮
+        function resetLotteryButton() {
+            const btn = document.getElementById('lotteryBtn');
+            if (!btn) return; // 防止空指针错误
+            
+            const btnText = btn.querySelector('.btn-main-text');
+            if (btnText) {
+                btnText.textContent = '请先登录';
+            }
+            btn.classList.add('disabled');
+            btn.disabled = true;
+        }
+
+        // 跳转到登录页面
+        function goToLogin() {
+            window.location.href = '/login';
+        }
+
+        // 登出
+        async function logout() {
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('登出错误:', error);
+            } finally {
+                currentUser = null;
+                updateUserInterface(false);
+                showModal('登出成功', '您已成功登出', 'success');
+            }
+        }
+
+        // 显示模态框
+        function showModal(title, message, type = 'info') {
+            const modal = document.getElementById('messageModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalHeader = document.getElementById('modalHeader');
+            const modalContent = modal.querySelector('.modal-content');
+            
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            
+            // 设置模态框样式
+            modalHeader.className = `modal-header ${type}`;
+            
+            // 显示模态框并添加动画
+            modal.style.display = 'flex';
+            modalContent.style.transform = 'scale(0.8)';
+            modalContent.style.opacity = '0';
+            
+            // 使用requestAnimationFrame确保样式应用后再开始动画
+            requestAnimationFrame(() => {
+                modalContent.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+                modalContent.style.transform = 'scale(1)';
+                modalContent.style.opacity = '1';
+            });
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            const modal = document.getElementById('messageModal');
+            const modalContent = modal.querySelector('.modal-content');
+            
+            modalContent.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+            modalContent.style.transform = 'scale(0.8)';
+            modalContent.style.opacity = '0';
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modalContent.style.transition = '';
+            }, 300);
+        }
+
+        // 格式化时间
+        function formatTime(timestamp) {
+            if (!timestamp) return '未知时间';
+            
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString('zh-CN');
+            } catch (e) {
+                return '未知时间';
+            }
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('messageModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+    
+    <!-- 引入统一导航栏组件 -->
+    <script src="/Pages/Common/js/navigation.js"></script>
+</body>
+</html>

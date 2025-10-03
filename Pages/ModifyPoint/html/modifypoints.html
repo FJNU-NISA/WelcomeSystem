@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NISA Welcome System - 积分分发</title>
+    <!-- 引入通用基础样式 -->
+    <link rel="stylesheet" href="/Pages/Common/css/base.css">
+    <!-- 引入积分分发页面专用样式 -->
+    <link rel="stylesheet" href="/Pages/ModifyPoint/css/modifypoints.css">
+    <!-- Font Awesome 图标库 -->
+    <link href="/Pages/Common/libs/font-awesome/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 统一导航栏将通过JavaScript自动插入 -->
+    
+    <!-- 主容器 -->
+    <div class="page-container">
+        <div class="main-container">
+            <!-- 页面标题 -->
+            <div class="header-section">
+                <h1><i class="fas fa-coins"></i> 积分分发管理</h1>
+            </div>
+
+                <!-- 加载状态 -->
+                <div id="loadingDiv" class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>加载中...</span>
+                </div>
+
+                <!-- 错误提示 -->
+                <div id="errorDiv" class="error-message" style="display: none;"></div>
+
+                <!-- 积分分发功能 -->
+                <div class="modify-points-container" id="modifyPointsContainer" style="display: none;">
+                
+                    <!-- 用户选择区域 -->
+                    <div class="action-panel">
+                        <h3><i class="fas fa-user-plus"></i> 选择目标用户</h3>
+                        <div class="search-form">
+                            <div class="input-group">
+                                <input type="text" id="targetStuId" placeholder="请输入学号" 
+                                       class="form-input" onkeypress="handleEnterKey(event)">
+                                <button onclick="loadUserInfo()" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                    查询用户
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 用户信息显示 -->
+                        <div id="userInfoDisplay" class="user-info-card" style="display: none;">
+                            <div class="user-info-content">
+                                <div class="user-avatar">
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                                <div class="user-details">
+                                    <div class="user-id">学号: <span id="userStuId">-</span></div>
+                                    <div class="user-points">当前积分: <span id="userPoints">0</span></div>
+                                </div>
+                                <div class="user-actions" id="userActions" style="display: none;">
+                                    <button onclick="goBackToInfo()" class="btn btn-outline btn-sm">
+                                        <i class="fas fa-arrow-left"></i>
+                                        返回信息页面
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 关卡积分分发区域 -->
+                    <div class="action-panel levels-section" id="levelsSection" style="display: none;">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-trophy"></i> 关卡积分分发</h3>
+                            <span class="permission-badge admin">管理员功能</span>
+                        </div>
+                        <div class="levels-grid" id="levelsGrid">
+                            <!-- 关卡按钮将由JavaScript动态生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 自定义积分分发（仅超级管理员） -->
+                    <div class="action-panel custom-points-section" id="customPointsSection" style="display: none;">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-edit"></i> 自定义积分调整</h3>
+                            <span class="permission-badge super-admin" id="customPointsBadge">超级管理员功能</span>
+                        </div>
+                        <form id="customPointsForm" class="points-form">
+                            <div class="form-grid">
+                                <div class="form-field">
+                                    <label for="customPoints">积分数量</label>
+                                    <input type="number" id="customPoints" name="points" 
+                                           class="form-input" placeholder="正数增加，负数减少" required>
+                                </div>
+                                <div class="form-field">
+                                    <label for="customReason">调整原因</label>
+                                    <input type="text" id="customReason" name="reason" 
+                                           class="form-input" placeholder="请输入调整原因" required>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check"></i>
+                                    确认调整
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 操作历史 -->
+                    <div class="action-panel history-section">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-history"></i> 最近操作记录</h3>
+                            <button class="btn btn-outline" onclick="refreshHistory()">
+                                <i class="fas fa-sync-alt"></i>
+                                刷新记录
+                            </button>
+                        </div>
+                        <div id="historyContainer" class="history-list">
+                            <div class="no-data">
+                                <i class="fas fa-inbox"></i>
+                                <p>暂无操作记录</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 消息提示模态框 -->
+    <div class="modal" id="messageModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">
+                <h3 id="modalTitle">提示</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <p id="modalMessage">消息内容</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/Pages/Common/js/utils.js"></script>
+    <script src="/Pages/Common/js/navigation.js"></script>
+    <script>
+        let currentUser = null;
+        let levelsData = [];
+        let currentTargetUser = null;
+        let operationHistory = [];
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM加载完成，开始初始化...');
+            initializePage();
+        });
+
+        // 备用方案：在window.onload时也尝试初始化
+        window.addEventListener('load', function() {
+            console.log('🌐 Window加载完成');
+            // 如果还没有初始化（比如DOMContentLoaded没有触发），则再次尝试
+            if (!currentUser) {
+                console.log('🔄 DOMContentLoaded可能没有触发，重新初始化...');
+                initializePage();
+            }
+        });
+
+        // 初始化页面
+        async function initializePage() {
+            console.log('🚀 开始初始化积分分发页面...');
+            
+            await checkAuth();
+            if (currentUser) {
+                console.log('✅ 用户认证成功，当前用户:', currentUser);
+                
+                setupEventListeners();
+                setupPermissions();
+                
+                // 先检查URL参数，再加载关卡数据
+                checkUrlParameters();
+                await loadLevels();
+                
+                // 加载操作历史
+                refreshHistory();
+                
+                console.log('✅ 页面初始化完成');
+            }
+        }
+
+        // 检查URL参数，支持从其他页面传递学号
+        function checkUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const stuId = urlParams.get('stuId');
+            
+            console.log('🔍 检查URL参数:', window.location.search);
+            console.log('🔍 获取到的stuId:', stuId);
+            
+            if (stuId && stuId.trim()) {
+                console.log(`🎯 从信息查询页面获取到目标学号: ${stuId}`);
+                
+                const targetInput = document.getElementById('targetStuId');
+                if (targetInput) {
+                    targetInput.value = stuId.trim();
+                    // 显示提示信息
+                    targetInput.style.borderColor = '#007bff';
+                    targetInput.style.backgroundColor = '#f0f8ff';
+                    
+                    console.log('✅ 已设置学号到输入框:', targetInput.value);
+                } else {
+                    console.error('❌ 找不到目标学号输入框元素');
+                }
+                
+                // 自动加载用户信息
+                console.log('⏳ 准备自动加载用户信息...');
+                setTimeout(() => {
+                    console.log('🚀 开始自动加载用户信息');
+                    loadUserInfo();
+                }, 800); // 增加延迟时间确保页面完全加载
+            } else {
+                console.log('ℹ️ URL中没有stuId参数或参数为空');
+            }
+        }
+
+        // 检查用户权限
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/user/info', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.status === 401) {
+                    // 未登录，跳转到登录页面
+                    window.location.href = '/login';
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error('获取用户信息失败');
+                }
+
+                const data = await response.json();
+                
+                // API直接返回用户对象，不是包装格式
+                currentUser = data;
+                
+                // 检查权限：只有管理员和超级管理员可以访问
+                if (currentUser.role !== 'admin' && currentUser.role !== 'super_admin') {
+                    showModal('权限不足', '只有管理员可以访问此页面', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/info';
+                    }, 2000);
+                    return;
+                }
+                
+                displayUserInfo();
+            } catch (error) {
+                console.error('权限检查错误:', error);
+                showError('权限验证失败，请重新登录');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            } finally {
+                document.getElementById('loadingDiv').style.display = 'none';
+            }
+        }
+
+        // 显示用户信息
+        function displayUserInfo() {
+            document.getElementById('modifyPointsContainer').style.display = 'block';
+        }
+
+        // 设置权限标识
+        function setupPermissions() {
+            // 超级管理员才能看到自定义积分分发功能
+            if (currentUser.role === 'super_admin') {
+                document.getElementById('customPointsSection').style.display = 'block';
+            }
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 自定义积分分发表单
+            document.getElementById('customPointsForm').addEventListener('submit', handleCustomPoints);
+        }
+
+        // 处理回车键
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                loadUserInfo();
+            }
+        }
+
+        // 加载用户信息
+        async function loadUserInfo() {
+            const targetInput = document.getElementById('targetStuId');
+            const stuId = targetInput ? targetInput.value.trim() : '';
+            
+            console.log('📋 开始加载用户信息，学号:', stuId);
+            
+            if (!stuId) {
+                console.warn('⚠️ 学号为空');
+                showModal('提示', '请输入学号', 'warning');
+                return;
+            }
+
+            try {
+                console.log('🌐 发送API请求:', `/api/user/info?stuId=${stuId}`);
+                
+                const response = await fetch(`/api/user/info?stuId=${stuId}`, {
+                    credentials: 'include'
+                });
+
+                console.log('📨 API响应状态:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ 用户信息加载成功:', data);
+                    
+                    // API直接返回用户对象
+                    currentTargetUser = data;
+                    displayTargetUserInfo();
+                    document.getElementById('levelsSection').style.display = 'block';
+                    
+                    // 重新生成关卡按钮以反映用户的完成状态
+                    generateLevelButtons();
+                    
+                    console.log('🎉 用户信息显示完成');
+                } else if (response.status === 404) {
+                    console.warn('❌ 用户不存在:', stuId);
+                    showModal('用户不存在', '未找到该学号对应的用户', 'error');
+                    hideUserSections();
+                } else {
+                    console.error('❌ API响应错误:', response.status, response.statusText);
+                    throw new Error(`查询用户信息失败: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ 加载用户信息失败:', error);
+                showModal('错误', '查询用户信息失败，请检查网络连接', 'error');
+                hideUserSections();
+            }
+        }
+
+        // 显示目标用户信息
+        function displayTargetUserInfo() {
+            document.getElementById('userStuId').textContent = currentTargetUser.stuId;
+            document.getElementById('userPoints').textContent = currentTargetUser.points || 0;
+            document.getElementById('userInfoDisplay').style.display = 'block';
+            
+            // 检查是否从信息页面跳转过来，如果是则显示返回按钮
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromInfoPage = urlParams.get('stuId'); // 如果URL中有stuId参数，说明是从信息页面跳转过来的
+            const userActions = document.getElementById('userActions');
+            
+            if (fromInfoPage && userActions) {
+                userActions.style.display = 'flex';
+                console.log('🔗 显示返回信息页面按钮');
+            } else if (userActions) {
+                userActions.style.display = 'none';
+            }
+        }
+
+        // 隐藏用户相关区域
+        function hideUserSections() {
+            document.getElementById('userInfoDisplay').style.display = 'none';
+            document.getElementById('levelsSection').style.display = 'none';
+            currentTargetUser = null;
+        }
+
+        // 加载关卡数据
+        async function loadLevels() {
+            try {
+                const response = await fetch('/api/levels/all', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        levelsData = data.levels;
+                        generateLevelButtons();
+                    }
+                }
+            } catch (error) {
+                console.error('加载关卡数据失败:', error);
+            }
+        }
+
+        // 生成关卡按钮
+        function generateLevelButtons() {
+            const levelsGrid = document.getElementById('levelsGrid');
+            levelsGrid.innerHTML = '';
+
+            if (levelsData.length === 0) {
+                levelsGrid.innerHTML = '<div class="no-data"><i class="fas fa-layer-group"></i><p>暂无关卡数据</p></div>';
+                return;
+            }
+
+            // 只显示已激活的关卡
+            const activeLevels = levelsData.filter(level => level.isActive);
+            
+            if (activeLevels.length === 0) {
+                levelsGrid.innerHTML = '<div class="no-data"><i class="fas fa-layer-group"></i><p>暂无已激活的关卡</p></div>';
+                return;
+            }
+
+            // 获取目标用户的完成关卡列表
+            const completedLevels = currentTargetUser ? (currentTargetUser.completedLevels || []) : [];
+
+            activeLevels.forEach(level => {
+                const isCompleted = completedLevels.includes(level._id);
+                const levelCard = document.createElement('div');
+                
+                // 根据完成状态添加不同的CSS类
+                levelCard.className = isCompleted ? 'level-card level-completed' : 'level-card';
+                
+                // 根据完成状态显示不同的内容
+                const buttonClass = isCompleted ? 'btn btn-secondary level-award-btn disabled' : 'btn btn-success level-award-btn';
+                const buttonText = isCompleted ? '已完成' : '完成关卡';
+                const buttonIcon = isCompleted ? 'fas fa-check' : 'fas fa-trophy';
+                const buttonDisabled = isCompleted ? 'disabled' : '';
+                const buttonOnClick = isCompleted ? '' : `onclick="awardLevelPoints('${level._id}')"`;
+                
+                levelCard.innerHTML = `
+                    <div class="level-name">${level.name}</div>
+                    <div class="level-points">+${level.points} 积分</div>
+                    <div class="level-description">${level.description || '完成此关卡获得积分奖励'}</div>
+                    ${isCompleted ? '<div class="level-completed-badge"><i class="fas fa-crown"></i> 已完成</div>' : ''}
+                    <button class="${buttonClass}" ${buttonDisabled} ${buttonOnClick}>
+                        <i class="${buttonIcon}"></i>
+                        ${buttonText}
+                    </button>
+                `;
+                levelsGrid.appendChild(levelCard);
+            });
+        }
+
+        // 奖励关卡积分
+        async function awardLevelPoints(levelId) {
+            if (!currentTargetUser) {
+                showModal('提示', '请先选择目标用户', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/points/level', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        stuId: currentTargetUser.stuId,
+                        levelId: levelId
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showModal('成功', data.message || '关卡积分分发成功', 'success');
+                    // 重新加载用户信息以更新积分
+                    await loadUserInfo();
+                    refreshHistory();
+                } else {
+                    showModal('失败', data.detail || data.message || '关卡积分分发失败', 'error');
+                }
+            } catch (error) {
+                console.error('分发关卡积分失败:', error);
+                showModal('错误', '分发关卡积分失败', 'error');
+            }
+        }
+
+        // 处理自定义积分分发
+        async function handleCustomPoints(event) {
+            event.preventDefault();
+            
+            if (!currentTargetUser) {
+                showModal('提示', '请先选择目标用户', 'warning');
+                return;
+            }
+
+            const formData = new FormData(event.target);
+            const points = parseInt(formData.get('points'));
+            const reason = formData.get('reason');
+
+            if (isNaN(points) || !reason.trim()) {
+                showModal('提示', '请填写完整的积分信息', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/points/modify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        stuId: currentTargetUser.stuId,
+                        points: points,
+                        reason: reason
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showModal('成功', data.message || '自定义积分分发成功', 'success');
+                    // 重新加载用户信息以更新积分
+                    await loadUserInfo();
+                    // 清空表单
+                    event.target.reset();
+                    refreshHistory();
+                } else {
+                    showModal('失败', data.detail || data.message || '自定义积分分发失败', 'error');
+                }
+            } catch (error) {
+                console.error('分发自定义积分失败:', error);
+                showModal('错误', '分发自定义积分失败', 'error');
+            }
+        }
+
+        // 刷新操作历史
+        async function refreshHistory() {
+            const container = document.getElementById('historyContainer');
+            
+            // 如果没有选择用户，显示提示
+            if (!currentTargetUser) {
+                container.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-info-circle"></i>
+                        <p>请先选择目标用户</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // 获取指定用户的操作历史
+                const response = await fetch(`/api/points/history/${encodeURIComponent(currentTargetUser.stuId)}?limit=20`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取历史记录失败');
+                }
+                
+                const data = await response.json();
+                
+                if (data.history && data.history.length > 0) {
+                    // 生成历史记录HTML
+                    const historyHTML = data.history.map(record => {
+                        // 根据类型设置图标
+                        let icon;
+                        let typeText;
+                        
+                        switch(record.type) {
+                            case 'level_completion':
+                                icon = '<i class="fas fa-trophy" style="color: #ffc107;"></i>';
+                                typeText = '关卡完成';
+                                break;
+                            case 'manual_modify':
+                                icon = '<i class="fas fa-edit" style="color: #007bff;"></i>';
+                                typeText = '手动调整';
+                                break;
+                            case 'lottery_draw':
+                                icon = '<i class="fas fa-gift" style="color: #dc3545;"></i>';
+                                typeText = '抽奖消耗';
+                                break;
+                            case 'revoke':
+                                icon = '<i class="fas fa-undo" style="color: #6c757d;"></i>';
+                                typeText = '操作撤销';
+                                break;
+                            default:
+                                icon = '<i class="fas fa-coins" style="color: #28a745;"></i>';
+                                typeText = '其他操作';
+                        }
+                        
+                        const pointsChange = record.pointsChange || 0;
+                        const pointsColor = pointsChange > 0 ? 'text-success' : 'text-danger';
+                        const pointsSign = pointsChange > 0 ? '+' : '';
+                        
+                        // 判断是否已被撤销
+                        const isRevoked = record.revoked || false;
+                        const revokedClass = isRevoked ? 'revoked-record' : '';
+                        
+                        // 判断是否可以撤销/恢复
+                        // 未被撤销的记录可以撤销
+                        // 撤销操作本身(type=revoke)如果未被撤销,也可以被撤销(即恢复原记录)
+                        const canRevoke = !isRevoked;
+                        
+                        // 确定按钮文本和样式
+                        const isRevokeType = record.type === 'revoke';
+                        const actionBtnText = isRevokeType ? '恢复' : '撤销';
+                        const actionBtnClass = isRevokeType ? 'btn-info' : 'btn-warning';
+                        const actionBtnIcon = isRevokeType ? 'fa-redo' : 'fa-undo';
+                        
+                        return `
+                            <div class="history-item ${revokedClass}" data-record-id="${record.recordId}">
+                                <div class="history-icon">${icon}</div>
+                                <div class="history-details">
+                                    <div class="history-main">
+                                        <span class="history-type">${typeText}</span>
+                                        <span class="history-points ${pointsColor}">${pointsSign}${pointsChange}积分</span>
+                                        ${isRevoked ? '<span class="revoked-badge"><i class="fas fa-ban"></i> 已撤销</span>' : ''}
+                                    </div>
+                                    <div class="history-sub">
+                                        <span class="history-reason">${record.reason || '无说明'}</span>
+                                        <span class="history-time"><i class="fas fa-clock"></i> ${record.formatted_time || '未知时间'}</span>
+                                        ${record.operator ? `<span class="history-operator"><i class="fas fa-user"></i> ${record.operator}</span>` : ''}
+                                    </div>
+                                    ${isRevoked && record.revokedBy ? `
+                                        <div class="history-revoke-info">
+                                            <i class="fas fa-info-circle"></i> 
+                                            由 ${record.revokedBy} 于 ${formatDateTime(record.revokedAt)} 撤销
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                ${canRevoke ? `
+                                    <div class="history-actions">
+                                        <button class="btn btn-sm ${actionBtnClass}" onclick="revokePointOperation('${currentTargetUser.stuId}', '${record.recordId}', ${isRevokeType})">
+                                            <i class="fas ${actionBtnIcon}"></i> ${actionBtnText}
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    container.innerHTML = historyHTML;
+                } else {
+                    container.innerHTML = `
+                        <div class="no-data">
+                            <i class="fas fa-inbox"></i>
+                            <p>暂无操作记录</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('获取操作历史失败:', error);
+                container.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                        <p>加载历史记录失败</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 格式化日期时间
+        function formatDateTime(dateTimeValue) {
+            if (!dateTimeValue) return '未知';
+            
+            try {
+                let date;
+                if (dateTimeValue.$date) {
+                    date = new Date(dateTimeValue.$date);
+                } else if (typeof dateTimeValue === 'string') {
+                    date = new Date(dateTimeValue);
+                } else if (dateTimeValue instanceof Date) {
+                    date = dateTimeValue;
+                } else {
+                    date = new Date(dateTimeValue);
+                }
+                
+                if (isNaN(date.getTime())) {
+                    return '日期格式错误';
+                }
+                
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            } catch (error) {
+                console.error('日期格式化错误:', error);
+                return '日期格式错误';
+            }
+        }
+
+        // 撤销/恢复积分操作
+        async function revokePointOperation(stuId, recordId, isRestore = false) {
+            const actionText = isRestore ? '恢复' : '撤销';
+            const actionDesc = isRestore 
+                ? '恢复后将重新应用之前被撤销的积分变更。' 
+                : '撤销后将回退相应的积分变更。';
+            
+            if (!confirm(`确认要${actionText}这条积分操作吗？\n${actionDesc}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/points/revoke/${encodeURIComponent(stuId)}/${encodeURIComponent(recordId)}`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showModal('成功', data.message || `操作${actionText}成功`, 'success');
+                    // 重新加载用户信息和历史记录
+                    await loadUserInfo();
+                    await refreshHistory();
+                } else {
+                    const error = await response.json();
+                    showModal('失败', error.detail || `操作${actionText}失败`, 'error');
+                }
+            } catch (error) {
+                console.error(`${actionText}操作失败:`, error);
+                showModal('错误', `${actionText}操作失败，请重试`, 'error');
+            }
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const errorDiv = document.getElementById('errorDiv');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // 显示模态框
+        function showModal(title, message, type = 'info') {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            
+            const modal = document.getElementById('messageModal');
+            const modalHeader = document.getElementById('modalHeader');
+            
+            // 根据类型设置样式
+            modalHeader.className = `modal-header ${type}`;
+            
+            modal.style.display = 'flex';
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('messageModal').style.display = 'none';
+        }
+
+        // 返回信息页面（当从信息页面跳转过来时）
+        function goBackToInfo() {
+            const targetStuId = document.getElementById('targetStuId').value.trim();
+            if (targetStuId) {
+                // 返回到指定用户的信息页面
+                window.location.href = `/info?stuId=${encodeURIComponent(targetStuId)}`;
+            } else {
+                // 返回到自己的信息页面
+                window.location.href = '/info';
+            }
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('messageModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

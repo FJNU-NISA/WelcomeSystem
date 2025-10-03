@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奖品管理 - NISA Welcome System</title>
+    <link rel="stylesheet" href="/Pages/Common/css/base.css">
+    <link rel="stylesheet" href="/Pages/PrizeManagement/css/prizemanagement.css?v=20250104">
+    <link rel="stylesheet" href="/Pages/Common/libs/font-awesome/all.min.css">
+</head>
+<body>
+    <!-- 统一导航栏将通过JavaScript自动插入 -->
+    
+    <div class="page-container">
+        <div class="main-container">
+            <div class="header-section">
+                <h1><i class="fas fa-gift"></i> 奖品管理</h1>
+            </div>
+
+        <!-- 统计面板 -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="totalPrizes">0</div>
+                    <div class="stat-label">总奖品数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon active">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="activePrizes">0</div>
+                    <div class="stat-label">剩余奖品数量</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon unredeemed">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="unredeemedPrizes">0</div>
+                    <div class="stat-label">未兑换奖品数</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon drawn">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" id="totalDrawn">0</div>
+                    <div class="stat-label">已抽中奖品</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作面板 -->
+        <div class="action-panel">
+            <div class="search-section">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="搜索奖品名称或描述..." />
+                </div>
+                <button class="btn btn-primary" onclick="searchPrizes()">
+                    <i class="fas fa-search"></i> 搜索
+                </button>
+                <button class="btn btn-secondary" onclick="clearSearch()">
+                    <i class="fas fa-times"></i> 清空
+                </button>
+            </div>
+            <div class="filter-section">
+                <label for="statusFilter">状态筛选：</label>
+                <select id="statusFilter" onchange="filterPrizes()">
+                    <option value="all">所有奖品</option>
+                    <option value="available">可用</option>
+                    <option value="low_stock">库存不足</option>
+                    <option value="out_of_stock">缺货</option>
+                </select>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-success" onclick="showAddPrizeModal()">
+                    <i class="fas fa-plus"></i> 添加奖品
+                </button>
+                <button class="btn btn-warning" onclick="showLotteryConfigModal()">
+                    <i class="fas fa-cog"></i> 抽奖配置
+                </button>
+                <button class="btn btn-info" onclick="exportPrizes()">
+                    <i class="fas fa-download"></i> 导出数据
+                </button>
+            </div>
+        </div>
+
+        <!-- 奖品列表 -->
+        <div class="prizes-container">
+            <div class="table-header">
+                <h3><i class="fas fa-list"></i> 奖品列表</h3>
+            </div>
+            <div class="table-container">
+                <table class="prizes-table">
+                    <thead>
+                        <tr>
+                            <th>奖品图片</th>
+                            <th>奖品名称</th>
+                            <th>数量</th>
+                            <th>中奖概率</th>
+                            <th>激活状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prizesTableBody">
+                        <!-- 奖品数据将通过JavaScript动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination">
+                <!-- 分页控件将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑奖品模态框 -->
+    <div id="prizeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">添加奖品</h3>
+                <span class="close" onclick="closePrizeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="prizeForm">
+                    <div class="form-group">
+                        <label for="prizeName">奖品名称 *</label>
+                        <input type="text" id="prizeName" name="Name" required placeholder="输入奖品名称">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="total">数量 *</label>
+                            <input type="number" id="total" name="total" required min="0" placeholder="奖品数量">
+                        </div>
+                        <div class="form-group">
+                            <label for="weight">中奖概率 * (%)</label>
+                            <input type="number" id="weight" name="weight" required min="0" max="100" step="0.1" placeholder="中奖概率值">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="prizeImage">奖品图片 *</label>
+                        <div class="image-upload-container">
+                            <div class="image-preview" id="imagePreview">
+                                <div class="preview-placeholder">
+                                    <i class="fas fa-image"></i>
+                                    <p>点击上传图片</p>
+                                </div>
+                            </div>
+                            <input type="file" id="prizeImageFile" accept="image/*" style="display: none;" onchange="handleImageUpload(this)">
+                            <div class="upload-buttons">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('prizeImageFile').click()">
+                                    <i class="fas fa-upload"></i> 选择图片
+                                </button>
+                            </div>
+                            <small class="form-hint">支持jpg、png、gif、bmp格式，大小不超过50MB。建议上传1:1比例的图片。</small>
+                            <input type="hidden" id="photo" name="photo" value="">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closePrizeModal()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" class="btn btn-primary" onclick="savePrize()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量更新模态框 -->
+    <div id="batchUpdateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>批量更新奖品</h3>
+                <span class="close" onclick="closeBatchUpdateModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="batchUpdateForm">
+                    <div class="selected-count">
+                        <p>已选择 <span id="selectedCount">0</span> 个奖品</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="batchAction">批量操作：</label>
+                        <select id="batchAction" name="action" onchange="toggleBatchFields()">
+                            <option value="">请选择操作</option>
+                            <option value="updateStock">更新库存</option>
+                            <option value="updateStatus">更新状态</option>
+                            <option value="updateCategory">更新类别</option>
+                            <option value="adjustPoints">调整积分</option>
+                        </select>
+                    </div>
+                    <div id="batchFields" style="display: none;">
+                        <!-- 动态显示不同的表单字段 -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeBatchUpdateModal()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" class="btn btn-warning" onclick="executeBatchUpdate()">
+                    <i class="fas fa-check"></i> 执行
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 奖品详情模态框 -->
+    <div id="prizeDetailModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>奖品详情</h3>
+                <span class="close" onclick="closePrizeDetailModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="prizeDetailContent">
+                    <!-- 详情内容将通过JavaScript动态填充 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closePrizeDetailModal()">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 兑换记录模态框 -->
+    <div id="redemptionModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>兑换记录</h3>
+                <span class="close" onclick="closeRedemptionModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="redemptionContent">
+                    <!-- 兑换记录将通过JavaScript动态填充 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeRedemptionModal()">
+                    <i class="fas fa-times"></i> 关闭
+                </button>
+                <button type="button" class="btn btn-info" onclick="exportRedemptions()">
+                    <i class="fas fa-download"></i> 导出记录
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 抽奖配置模态框 -->
+    <div id="lotteryConfigModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>抽奖配置</h3>
+                <span class="close" onclick="closeLotteryConfigModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="lotteryConfigForm">
+                    <div class="form-group">
+                        <label for="lotteryPoints">抽一次奖所需积分 *</label>
+                        <input type="number" id="lotteryPoints" name="lotteryPoints" required min="1" placeholder="输入所需积分数">
+                        <small class="form-hint">设置用户参与一次抽奖需要消耗的积分</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="thanksForParticipating">启用"谢谢惠顾"选项</label>
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="thanksForParticipating" name="thanksForParticipating">
+                            <span class="checkmark"></span>
+                        </div>
+                        <small class="form-hint">启用后会自动填补奖品概率总和不足100%的空白部分，当所有奖品概率达到100%时才可以取消此选项</small>
+                    </div>
+                    <div class="probability-summary">
+                        <div class="probability-info">
+                            <span class="probability-label">当前奖品概率总和：</span>
+                            <span id="totalProbability" class="probability-value">0%</span>
+                        </div>
+                        <div class="probability-info">
+                            <span class="probability-label">"谢谢惠顾"概率：</span>
+                            <span id="thanksProbability" class="probability-value">100%</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeLotteryConfigModal()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveLotteryConfig()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>确认删除</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage">确定要删除此奖品吗？此操作不可恢复！</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> 删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/Pages/Common/js/utils.js"></script>
+    <script src="/Pages/PrizeManagement/js/prizemanagement.js?v=20250104"></script>
+    <!-- 引入统一导航栏组件 -->
+    <script src="/Pages/Common/js/navigation.js"></script>
+</body>
+</html>

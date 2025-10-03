@@ -1,0 +1,331 @@
+/* 关卡查看页面样式 */
+
+.main-container {
+    max-width: 1200px;
+    margin: 0 auto;        /* 移除顶部间距,使用page-container的margin-top */
+    margin-bottom: 20px;   /* 保持底部间距 */
+    padding: 20px;
+}
+
+.page-header {
+    text-align: center;
+    margin-top: 0.5rem;    /* 与成员管理页面保持一致 */
+    margin-bottom: 2rem;   /* 与成员管理页面保持一致 */
+    padding: 2rem;         /* 与成员管理页面保持一致 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;   /* 与成员管理页面保持一致 */
+    color: white;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.page-header h1 {
+    font-size: 2.5rem;      /* 使用rem单位 */
+    margin: 0 0 0.5rem 0;   /* 与成员管理页面保持一致 */
+    font-weight: 600;       /* 与成员管理页面保持一致 */
+}
+
+.page-header .subtitle {
+    font-size: 1.1rem;      /* 使用rem单位 */
+    opacity: 0.9;
+    margin: 0;
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 1.2em;
+    color: #667eea;
+}
+
+.loading-indicator i {
+    margin-right: 10px;
+}
+
+/* 关卡网格布局 */
+.levels-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+    margin-top: 30px;
+}
+
+/* 关卡卡片 */
+.level-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.level-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.level-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
+}
+
+.level-card.inactive {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.level-card.inactive:hover {
+    transform: none;
+}
+
+/* 关卡标题区域 */
+.level-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.level-name {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+
+.level-points {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 1em;
+}
+
+.level-points i {
+    margin-right: 5px;
+}
+
+/* 关卡描述 */
+.level-description {
+    color: #666;
+    line-height: 1.6;
+    margin: 15px 0;
+    min-height: 60px;
+}
+
+/* 关卡状态标签 */
+.level-status {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.level-status.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.level-status.inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* 查看详情按钮 */
+.view-detail-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+}
+
+.view-detail-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.level-card.inactive .view-detail-btn {
+    background: #cccccc;
+    cursor: not-allowed;
+}
+
+.level-card.inactive .view-detail-btn:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: #999;
+}
+
+.empty-state i {
+    font-size: 4em;
+    margin-bottom: 20px;
+    color: #ddd;
+}
+
+.empty-state p {
+    font-size: 1.2em;
+}
+
+/* 弹窗样式 */
+.modal {
+    display: none;  /* 默认隐藏 */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+/* 当modal显示时使用flex布局居中 */
+.modal[style*="display: block"] {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    margin: auto;  /* 自动居中 */
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease;
+    position: relative;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #333;
+}
+
+/* 详情内容样式 */
+.detail-header {
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 20px;
+}
+
+.detail-header h2 {
+    color: #333;
+    margin: 0 0 10px 0;
+    font-size: 2em;
+}
+
+.detail-points {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    display: inline-block;
+    font-weight: 600;
+    font-size: 1.2em;
+    margin-top: 10px;
+}
+
+.detail-info {
+    margin: 20px 0;
+    line-height: 1.8;
+    color: #666;
+    font-size: 1.05em;
+}
+
+.detail-status {
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 20px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.detail-status.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.detail-status.inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 15px;  /* 移动端减少内边距 */
+    }
+    
+    .levels-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .page-header {
+        margin-bottom: 1.5rem;  /* 移动端减少底部间距 */
+        padding: 1.5rem 1rem;   /* 移动端减少内边距 */
+    }
+
+    .page-header h1 {
+        font-size: 2rem;  /* 移动端稍微减小标题 */
+    }
+
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;  /* 移动端增加最大高度 */
+        padding: 20px;
+    }
+}

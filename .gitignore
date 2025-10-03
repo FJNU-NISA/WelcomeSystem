@@ -1,0 +1,322 @@
+# ========================================
+# NISA Welcome System - .gitignore
+# ========================================
+
+# =====================================
+# Python相关
+# =====================================
+# 字节码文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C扩展
+*.so
+
+# 分发/打包
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# 单元测试 / 覆盖率报告
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# =====================================
+# 项目特定配置文件
+# =====================================
+# 配置文件（可能包含敏感信息）
+config.ini
+config_local.ini
+*.ini.local
+*.ini.backup
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 日志文件
+*.log
+logs/
+log/
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+
+# =====================================
+# FastAPI相关
+# =====================================
+# 异步任务相关
+celerybeat.pid
+
+# =====================================
+# MongoDB相关
+# =====================================
+# MongoDB数据文件
+data/
+mongodb_data/
+
+# =====================================
+# 前端资源
+# =====================================
+# Node.js相关（如果有前端构建工具）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 压缩后的资源文件
+*.min.js
+*.min.css
+
+# 临时构建文件
+build/
+dist/
+
+# =====================================
+# 编辑器和IDE
+# =====================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# =====================================
+# 操作系统相关
+# =====================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =====================================
+# 安全相关
+# =====================================
+# 密钥文件
+*.key
+*.pem
+*.p12
+*.pfx
+secret*
+secrets/
+credentials/
+
+# 环境变量文件
+.env*
+!.env.example
+
+# SSL证书
+*.crt
+*.cer
+
+# =====================================
+# 媒体和资源文件（可选）
+# =====================================
+# 大型媒体文件（根据需要调整）
+# *.jpg
+# *.jpeg
+# *.png
+# *.gif
+# *.mp4
+# *.avi
+# *.mov
+
+# =====================================
+# 备份文件
+# =====================================
+*.bak
+*.backup
+*.old
+*.orig
+*_backup.*
+*_temp.*
+*temp.*
+*test.*
+
+# =====================================
+# 项目特定忽略
+# =====================================
+# 奖品图片上传目录（根据实际需要）
+Assest/Prize/uploads/
+uploads/
+
+# 用户上传文件
+user_uploads/
+
+# 缓存目录
+cache/
+.cache/
+
+# 测试文件
+test_*.py
+*_test.py
+tests/temp/
+*test*.html
+*-test*.html
+
+# 文档生成
+docs/_build/
+
+# =====================================
+# 版本控制相关
+# =====================================
+# Git相关
+.git/
+.gitattributes
+
+# SVN
+.svn/
+
+# =====================================
+# 其他工具相关
+# =====================================
+# Docker
+.dockerignore
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Coverage reports
+htmlcov/
+
+# Pytest
+.pytest_cache/
+
+# Bandit security scanner
+.bandit
+
+# Safety security scanner
+safety-report.json
