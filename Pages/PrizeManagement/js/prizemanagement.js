@@ -955,7 +955,12 @@ async function saveLotteryConfig() {
 
         if (!response.ok) {
             let errText = '';
-            try { errText = (await response.json()).detail || JSON.stringify(await response.json()); } catch (e) { errText = await response.text(); }
+            try {
+                const errJson = await response.json();
+                errText = errJson.detail || JSON.stringify(errJson);
+            } catch (e) {
+                errText = await response.text();
+            }
             throw new Error(errText || '保存失败');
         }
 
