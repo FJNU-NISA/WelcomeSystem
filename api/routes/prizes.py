@@ -556,30 +556,6 @@ async def update_lottery_config(config_data: dict, current_user: dict = Depends(
         logger.error(f"更新抽奖配置失败: {e}")
         raise HTTPException(status_code=500, detail=f"更新抽奖配置失败: {str(e)}")
 
-@router.get("/probability-summary")
-async def get_probability_summary(current_user: dict = Depends(require_super_admin)):
-    """获取概率摘要"""
-    try:
-        collection = await prize_manager.get_collection()
-        pipeline = [
-                {"$match": {"isDefault": {"$ne": True}, "isActive": True}},
-                {"$group": {
-                    "_id": None,
-                    "totalProbability": {"$sum": "$weight"}
-                }}
-        ]
-        result = await collection.aggregate(pipeline).to_list(1)
-        total_probability = result[0]["totalProbability"] if result else 0
-        
-        return {
-            "totalProbability": total_probability,
-            "thanksProbability": max(0, 100 - total_probability),
-            "isComplete": total_probability >= 100
-        }
-    except Exception as e:
-        logger.error(f"获取概率摘要失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取概率摘要失败: {str(e)}")
-
 @router.post("/validate-probability")
 async def validate_probability(data: dict, current_user: dict = Depends(require_super_admin)):
     """验证奖品概率"""
