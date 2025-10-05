@@ -123,7 +123,7 @@ async def get_prizes_list(
             # 图片回退处理：如果 photo 指定且文件存在则使用，否则回退到 default.png
             photo_name = prize.get('photo') or 'default.png'
             photo_path = os.path.join('Assest', 'Prize', photo_name)
-            if not photo_name or not os.path.exists(photo_path):
+            if not os.path.exists(photo_path):
                 photo_name = 'default.png'
 
             prize["image"] = f"/Assest/Prize/{photo_name}"
