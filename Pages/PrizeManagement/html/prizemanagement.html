@@ -71,24 +71,13 @@
                     <i class="fas fa-times"></i> 清空
                 </button>
             </div>
-            <div class="filter-section">
-                <label for="statusFilter">状态筛选：</label>
-                <select id="statusFilter" onchange="filterPrizes()">
-                    <option value="all">所有奖品</option>
-                    <option value="available">可用</option>
-                    <option value="low_stock">库存不足</option>
-                    <option value="out_of_stock">缺货</option>
-                </select>
-            </div>
+            <!-- 状态筛选已移除（由后台/其他视图管理） -->
             <div class="action-buttons">
                 <button class="btn btn-success" onclick="showAddPrizeModal()">
                     <i class="fas fa-plus"></i> 添加奖品
                 </button>
                 <button class="btn btn-warning" onclick="showLotteryConfigModal()">
                     <i class="fas fa-cog"></i> 抽奖配置
-                </button>
-                <button class="btn btn-info" onclick="exportPrizes()">
-                    <i class="fas fa-download"></i> 导出数据
                 </button>
             </div>
         </div>
@@ -270,14 +259,14 @@
                         <input type="number" id="lotteryPoints" name="lotteryPoints" required min="1" placeholder="输入所需积分数">
                         <small class="form-hint">设置用户参与一次抽奖需要消耗的积分</small>
                     </div>
-                    <div class="form-group">
+                    <!-- <div class="form-group">
                         <label for="thanksForParticipating">启用"谢谢惠顾"选项</label>
                         <div class="checkbox-container">
                             <input type="checkbox" id="thanksForParticipating" name="thanksForParticipating">
                             <span class="checkmark"></span>
                         </div>
                         <small class="form-hint">启用后会自动填补奖品概率总和不足100%的空白部分，当所有奖品概率达到100%时才可以取消此选项</small>
-                    </div>
+                    </div> -->
                     <div class="probability-summary">
                         <div class="probability-info">
                             <span class="probability-label">当前奖品概率总和：</span>

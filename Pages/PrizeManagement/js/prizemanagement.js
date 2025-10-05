@@ -96,9 +96,6 @@ async function loadPrizes() {
             limit: pageSize
         });
         
-        if (currentFilter !== 'all') {
-            params.append('status', currentFilter);
-        }
         
         if (currentSearch) {
             params.append('search', currentSearch);
@@ -127,12 +124,28 @@ async function loadPrizes() {
 function renderPrizesTable() {
     const tbody = document.getElementById('prizesTableBody');
     
-    if (prizesData.length === 0) {
+    // 根据当前筛选条件在客户端过滤数据
+    let filtered = prizesData.slice();
+    if (currentFilter === 'available') {
+        // 可用：激活且 (默认奖品 OR 数量>0)
+        filtered = filtered.filter(p => {
+            const totalNum = Number(p.total || 0);
+            return (p.isActive !== false) && (p.isDefault === true || totalNum > 0);
+        });
+    } else if (currentFilter === 'out_of_stock') {
+        // 缺货：数量严格等于0
+        filtered = filtered.filter(p => {
+            const totalNum = Number(p.total || 0);
+            return totalNum === 0;
+        });
+    }
+
+    if (filtered.length === 0) {
         showEmptyState();
         return;
     }
-    
-    tbody.innerHTML = prizesData.map(prize => {
+
+    tbody.innerHTML = filtered.map(prize => {
         const isDefault = prize.isDefault || false;
         const isActive = prize.isActive !== undefined ? prize.isActive : true;
         const deleteDisabled = isDefault ? 'disabled' : '';
@@ -151,7 +164,7 @@ function renderPrizesTable() {
                 ${isDefault ? '<span class="default-badge">默认</span>' : ''}
             </td>
             <td>
-                <span class="total-badge">${prize.total > 999000 ? '∞' : prize.total || 0}</span>
+                <span class="${Number(prize.total || 0) === 0 ? 'total-badge zero-stock' : 'total-badge'}">${Number(prize.total || 0) > 999000 ? '∞' : (prize.total || 0)}</span>
             </td>
             <td>
                 <span class="weight-badge">${(prize.weight || 0).toFixed(1)}%</span>
@@ -243,10 +256,9 @@ function clearSearch() {
 }
 
 // 筛选奖品
+// 状态筛选的界面/逻辑已移除，保留占位注释以兼容历史调用
 function filterPrizes() {
-    currentFilter = document.getElementById('statusFilter').value;
-    currentPage = 1;
-    loadPrizes();
+    // no-op
 }
 
 // 全选/取消全选
@@ -285,8 +297,19 @@ function showAddPrizeModal() {
 async function editPrize(prizeId) {
     try {
         const response = await fetch(`/api/admin/prizes/${prizeId}`);
-        if (!response.ok) throw new Error('获取奖品信息失败');
-        
+        if (!response.ok) {
+            // 尝试读取服务器返回的详细信息
+            let errText = '';
+            try {
+                const errJson = await response.json();
+                errText = errJson.detail || JSON.stringify(errJson);
+            } catch (e) {
+                errText = await response.text();
+            }
+            console.error('服务器返回错误：', response.status, errText);
+            throw new Error('获取奖品信息失败: ' + (errText || response.statusText));
+        }
+
         const prize = await response.json();
         
         editingPrizeId = prizeId;
@@ -299,7 +322,7 @@ async function editPrize(prizeId) {
         document.getElementById('prizeModal').style.display = 'block';
     } catch (error) {
         console.error('编辑奖品失败:', error);
-        showMessage('获取奖品信息失败', 'error');
+        showMessage(error.message || '获取奖品信息失败', 'error');
     }
 }
 
@@ -394,6 +417,12 @@ async function savePrize() {
         closePrizeModal();
         loadPrizes();
         loadPrizesStats();
+        
+        // 如果抽奖配置模态框是打开的，更新概率信息
+        const lotteryModal = document.getElementById('lotteryConfigModal');
+        if (lotteryModal && lotteryModal.style.display === 'block') {
+            await updateProbabilityInfo();
+        }
     } catch (error) {
         console.error('保存奖品失败:', error);
         showMessage(error.message, 'error');
@@ -410,8 +439,18 @@ function closePrizeModal() {
 async function viewPrizeDetail(prizeId) {
     try {
         const response = await fetch(`/api/admin/prizes/${prizeId}`);
-        if (!response.ok) throw new Error('获取奖品详情失败');
-        
+        if (!response.ok) {
+            let errText = '';
+            try {
+                const errJson = await response.json();
+                errText = errJson.detail || JSON.stringify(errJson);
+            } catch (e) {
+                errText = await response.text();
+            }
+            console.error('服务器返回错误：', response.status, errText);
+            throw new Error('获取奖品详情失败: ' + (errText || response.statusText));
+        }
+
         const prize = await response.json();
         
         const detailHTML = `
@@ -425,7 +464,7 @@ async function viewPrizeDetail(prizeId) {
                         </div>
                         <div class="detail-item">
                             <label>数量:</label>
-                            <span class="total-badge">${prize.total || 0}</span>
+                            <span class="${Number(prize.total || 0) === 0 ? 'total-badge zero-stock' : 'total-badge'}">${prize.total || 0}</span>
                         </div>
                         <div class="detail-item">
                             <label>中奖概率:</label>
@@ -452,7 +491,7 @@ async function viewPrizeDetail(prizeId) {
         
     } catch (error) {
         console.error('查看奖品详情失败:', error);
-        showMessage('获取奖品详情失败', 'error');
+        showMessage(error.message || '获取奖品详情失败', 'error');
     }
 }
 
@@ -550,6 +589,12 @@ async function confirmDelete() {
         closeDeleteModal();
         loadPrizes();
         loadPrizesStats();
+        
+        // 如果抽奖配置模态框是打开的，更新概率信息
+        const lotteryModal = document.getElementById('lotteryConfigModal');
+        if (lotteryModal && lotteryModal.style.display === 'block') {
+            await updateProbabilityInfo();
+        }
     } catch (error) {
         console.error('删除奖品失败:', error);
         showMessage('删除奖品失败', 'error');
@@ -773,31 +818,6 @@ async function executeBatchUpdate() {
     closeBatchUpdateModal();
 }
 
-// 导出功能
-async function exportPrizes() {
-    try {
-        showMessage('正在准备导出数据...', 'info');
-        
-        const response = await fetch('/api/admin/prizes/export');
-        if (!response.ok) throw new Error('导出失败');
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `prizes_${formatDate(new Date(), 'YYYY-MM-DD')}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        showMessage('奖品数据导出成功', 'success');
-    } catch (error) {
-        console.error('导出奖品数据失败:', error);
-        showMessage('导出奖品数据失败', 'error');
-    }
-}
-
 async function exportRedemptions() {
     try {
         showMessage('正在准备导出兑换记录...', 'info');
@@ -825,47 +845,120 @@ async function exportRedemptions() {
 // 抽奖配置相关功能
 async function showLotteryConfigModal() {
     try {
-        // 获取当前抽奖配置
+        // 尝试拉取当前后端的抽奖配置并展示在模态框中
         const response = await fetch('/api/admin/lottery-config');
-        if (!response.ok) throw new Error('获取抽奖配置失败');
+        if (response.ok) {
+            const config = await response.json();
+            // 如果页面中存在对应表单字段则填充
+            const pointsEl = document.getElementById('lotteryPoints');
+            const timesEl = document.getElementById('lotteryTimes');
+            if (pointsEl) pointsEl.value = config.lotteryPoints ?? '';
+            if (timesEl) timesEl.value = config.times ?? '';
+        }
         
-        const config = await response.json();
-        
-        // 填充表单
-        document.getElementById('lotteryPoints').value = config.lotteryPoints || 1;
+        // 计算和更新概率信息
+        await updateProbabilityInfo();
         
         document.getElementById('lotteryConfigModal').style.display = 'block';
     } catch (error) {
-        console.error('获取抽奖配置失败:', error);
-        showMessage('获取抽奖配置失败', 'error');
+        console.error('打开抽奖配置模态框失败:', error);
+        showMessage('无法加载抽奖配置，请稍后重试', 'error');
+    }
+}
+
+// 更新概率信息显示
+async function updateProbabilityInfo() {
+    try {
+        console.log('开始更新概率信息...');
+        
+        // 获取概率总和信息
+        const response = await fetch('/api/admin/prizes/probability-summary');
+        
+        console.log('API响应状态:', response.status, response.ok);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('API返回数据:', data);
+            
+            // 更新显示
+            const totalProbabilityEl = document.getElementById('totalProbability');
+            const thanksProbabilityEl = document.getElementById('thanksProbability');
+            
+            if (totalProbabilityEl) {
+                console.log('更新 totalProbability:', data.totalProbability);
+                totalProbabilityEl.textContent = `${data.totalProbability.toFixed(1)}%`;
+            }
+            
+            if (thanksProbabilityEl) {
+                console.log('更新 thanksProbability:', data.thanksProbability);
+                thanksProbabilityEl.textContent = `${data.thanksProbability.toFixed(1)}%`;
+            }
+        } else {
+            const errorText = await response.text();
+            console.error('API响应错误:', response.status, errorText);
+            throw new Error(`API请求失败: ${response.status} ${errorText}`);
+        }
+        
+    } catch (error) {
+        console.error('更新概率信息失败:', error);
+        
+        // 如果API失败，尝试从本地数据计算
+        console.log('使用本地数据计算概率, prizesData:', prizesData);
+        let totalProbability = 0;
+        if (prizesData && prizesData.length > 0) {
+            const filteredPrizes = prizesData.filter(prize => prize.isActive !== false && prize.isDefault !== true);
+            console.log('过滤后的奖品:', filteredPrizes);
+            
+            totalProbability = filteredPrizes.reduce((sum, prize) => {
+                const weight = parseFloat(prize.weight) || 0;
+                console.log(`奖品 ${prize.Name || 'Unknown'}: weight=${weight}`);
+                return sum + weight;
+            }, 0);
+        }
+        
+        console.log('计算得到的totalProbability:', totalProbability);
+        
+        // 更新显示
+        const totalProbabilityEl = document.getElementById('totalProbability');
+        const thanksProbabilityEl = document.getElementById('thanksProbability');
+        
+        if (totalProbabilityEl) {
+            totalProbabilityEl.textContent = `${totalProbability.toFixed(1)}%`;
+        }
+        
+        if (thanksProbabilityEl) {
+            const thanksProb = Math.max(0, 100 - totalProbability);
+            thanksProbabilityEl.textContent = `${thanksProb.toFixed(1)}%`;
+        }
     }
 }
 
 async function saveLotteryConfig() {
     try {
+        const pointsEl = document.getElementById('lotteryPoints');
+        const timesEl = document.getElementById('lotteryTimes');
         const configData = {
-            lotteryPoints: parseInt(document.getElementById('lotteryPoints').value) || 1
+            lotteryPoints: pointsEl ? parseInt(pointsEl.value, 10) || 0 : 0,
+            times: timesEl ? parseInt(timesEl.value, 10) || 1 : 1
         };
-        
-        // 验证数据
+
         if (configData.lotteryPoints < 1) {
             showMessage('抽奖积分必须大于0', 'error');
             return;
         }
-        
+
         const response = await fetch('/api/admin/lottery-config', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(configData)
         });
-        
+
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || '保存失败');
+            let errText = '';
+            try { errText = (await response.json()).detail || JSON.stringify(await response.json()); } catch (e) { errText = await response.text(); }
+            throw new Error(errText || '保存失败');
         }
-        
+
         const result = await response.json();
         showMessage(result.message || '抽奖配置保存成功', 'success');
         closeLotteryConfigModal();
@@ -982,6 +1075,12 @@ async function togglePrizeActive(prizeId, isActive) {
         // 重新加载数据
         await loadPrizes();
         await loadPrizesStats();
+        
+        // 如果抽奖配置模态框是打开的，更新概率信息
+        const lotteryModal = document.getElementById('lotteryConfigModal');
+        if (lotteryModal && lotteryModal.style.display === 'block') {
+            await updateProbabilityInfo();
+        }
         
     } catch (error) {
         console.error('切换奖品状态失败:', error);
