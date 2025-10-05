@@ -40,8 +40,8 @@ NISA 迎新系统是一个基于 FastAPI 和 MongoDB 的现代化迎新管理平
 ### 1. 克隆项目
 
 ```bash
-git clone <repository-url>
-cd 迎新系统
+git clone https://github.com/coperlm/WelcomeSystem.git
+cd WelcomeSystem
 ```
 
 ### 2. 安装依赖

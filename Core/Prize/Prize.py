@@ -461,6 +461,23 @@ class Prize:
         except Exception as e:
             logging.error(f"确保默认奖品存在时发生错误: {e}")
             return False
+
+    async def compute_other_active_weight(self) -> float:
+        """
+        计算当前所有激活且非默认奖品的权重总和（返回浮点数）
+        """
+        try:
+            collection = await self._get_collection()
+            pipeline = [
+                {"$match": {"isDefault": {"$ne": True}, "isActive": True}},
+                {"$group": {"_id": None, "totalWeight": {"$sum": "$weight"}}}
+            ]
+            result = await collection.aggregate(pipeline).to_list(1)
+            total = float(result[0]["totalWeight"]) if result and result[0].get("totalWeight") is not None else 0.0
+            return total
+        except Exception as e:
+            logging.exception(f"计算其他激活奖品权重总和时发生错误: {e}")
+            return 0.0
     
     async def update_default_prize_weight(self) -> bool:
         """
@@ -491,8 +508,8 @@ class Prize:
             result = await collection.aggregate(pipeline).to_list(1)
             other_prizes_weight = result[0]["totalWeight"] if result else 0
             
-            # 计算默认奖品的概率
-            default_weight = max(0, 100 - other_prizes_weight)
+            # 计算默认奖品的概率（不包含默认奖品自身）
+            default_weight = max(0, 100 - float(other_prizes_weight or 0))
             
             # 更新默认奖品
             update_result = await collection.update_one(
