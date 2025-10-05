@@ -24,6 +24,21 @@ router = APIRouter(prefix="/api/admin/prizes", tags=["奖品管理"])
 prize_manager = Prize()
 config_manager = Config()
 
+def process_prize_photo(prize: dict) -> dict:
+    """
+    处理奖品照片的回退逻辑
+    如果 photo 指定且文件存在则使用，否则回退到 default.png
+    """
+    photo_name = prize.get('photo') or 'default.png'
+    photo_path = os.path.join('Assest', 'Prize', photo_name)
+    if not photo_name or not os.path.exists(photo_path):
+        photo_name = 'default.png'
+    
+    prize["image"] = f"/Assest/Prize/{photo_name}"
+    # 兼容旧前端：将 photo 字段也回退为存在的文件名，防止前端直接使用 prize.photo 导致 404
+    prize["photo"] = photo_name
+    return prize
+
 @router.get("/stats")
 async def get_prizes_stats(current_user: dict = Depends(require_super_admin)):
     """获取奖品统计信息"""
@@ -120,15 +135,8 @@ async def get_prizes_list(
         async for prize in cursor:
             prize["_id"] = str(prize["_id"])
 
-            # 图片回退处理：如果 photo 指定且文件存在则使用，否则回退到 default.png
-            photo_name = prize.get('photo') or 'default.png'
-            photo_path = os.path.join('Assest', 'Prize', photo_name)
-            if not os.path.exists(photo_path):
-                photo_name = 'default.png'
-
-            prize["image"] = f"/Assest/Prize/{photo_name}"
-            # 兼容旧前端：将 photo 字段也回退为存在的文件名，防止前端直接使用 prize.photo 导致 404
-            prize["photo"] = photo_name
+            # 处理图片回退逻辑
+            process_prize_photo(prize)
 
             # 如果这是默认奖品，动态计算其概率为 100 - sum(其他激活奖品权重)
             try:
@@ -237,14 +245,7 @@ async def get_prize(prize_id: str, current_user: dict = Depends(require_super_ad
             raise HTTPException(status_code=404, detail="奖品不存在")
         # 格式化返回字段并处理图片回退
         prize["_id"] = str(prize["_id"]) if isinstance(prize.get("_id"), ObjectId) else str(prize.get("_id"))
-        photo_name = prize.get('photo') or 'default.png'
-        photo_path = os.path.join('Assest', 'Prize', photo_name)
-        if not photo_name or not os.path.exists(photo_path):
-            photo_name = 'default.png'
-
-        prize["image"] = f"/Assest/Prize/{photo_name}"
-        # 兼容旧前端：将 photo 字段也回退为存在的文件名
-        prize["photo"] = photo_name
+        process_prize_photo(prize)
 
         # 如果这是默认奖品，动态计算其概率并覆盖
         try:

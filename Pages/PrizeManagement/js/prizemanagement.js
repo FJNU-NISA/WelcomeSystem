@@ -255,12 +255,6 @@ function clearSearch() {
     loadPrizes();
 }
 
-// 筛选奖品
-// 状态筛选的界面/逻辑已移除，保留占位注释以兼容历史调用
-function filterPrizes() {
-    // no-op
-}
-
 // 全选/取消全选
 function toggleSelectAll() {
     const selectAll = document.getElementById('selectAll');
