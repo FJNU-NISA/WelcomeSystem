@@ -145,6 +145,9 @@ yarn-error.log*
 *.min.js
 *.min.css
 
+# 但允许必需的第三方库CSS文件
+!Pages/Common/libs/**/*.min.css
+
 # 临时构建文件
 build/
 dist/
