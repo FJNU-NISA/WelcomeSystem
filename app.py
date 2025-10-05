@@ -778,7 +778,7 @@ async def get_lottery_prizes():
             # 处理图片：如果数据库中有 photo 字段且文件存在则使用之，否则回退到 default.png
             photo_name = prize.get('photo') or 'default.png'
             photo_path = os.path.join('Assest', 'Prize', photo_name)
-            if not photo_name or not os.path.exists(photo_path):
+            if not os.path.exists(photo_path):
                 photo_name = 'default.png'
 
             converted_prize = {
