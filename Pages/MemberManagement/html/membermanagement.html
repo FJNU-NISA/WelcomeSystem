@@ -84,9 +84,6 @@
                 <button class="btn btn-success" onclick="showAddMemberModal()">
                     <i class="fas fa-user-plus"></i> 添加成员
                 </button>
-                <button class="btn btn-info" onclick="exportMembers()">
-                    <i class="fas fa-download"></i> 导出数据
-                </button>
             </div>
         </div>
 
@@ -140,11 +137,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="points">初始积分</label>
+                        <!-- 经测试，这里实际是直接更改积分，而非初始（初始默认是0） -->
+                        <label for="points">当前积分</label>
                         <input type="number" id="points" name="points" value="0" min="0">
                     </div>
                     <div class="form-group">
-                        <label for="password">初始密码</label>
+                        <label for="password">重置密码</label>
                         <input type="password" id="password" name="password" placeholder="留空则默认密码为学号">
                         <small class="form-help">如果不设置密码，默认密码将设置为用户的学号</small>
                     </div>

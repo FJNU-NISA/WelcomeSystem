@@ -478,31 +478,6 @@ function closeDeleteModal() {
     deletingLevelId = null;
 }
 
-// 导出关卡数据
-async function exportLevels() {
-    try {
-        showMessage('正在准备导出数据...', 'info');
-        
-        const response = await fetch('/api/admin/levels/export');
-        if (!response.ok) throw new Error('导出失败');
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `levels_${formatDate(new Date(), 'YYYY-MM-DD')}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        showMessage('关卡数据导出成功', 'success');
-    } catch (error) {
-        console.error('导出关卡数据失败:', error);
-        showMessage('导出关卡数据失败', 'error');
-    }
-}
-
 // 辅助函数
 function getStatusClass(isActive) {
     return isActive ? 'active' : 'inactive';

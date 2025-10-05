@@ -472,31 +472,6 @@ function closeDeleteModal() {
     deletingMemberId = null;
 }
 
-// 导出成员数据
-async function exportMembers() {
-    try {
-        showMessage('正在准备导出数据...', 'info');
-        
-        const response = await fetch('/api/admin/members/export');
-        if (!response.ok) throw new Error('导出失败');
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `members_${formatDate(new Date(), 'YYYY-MM-DD')}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        showMessage('数据导出成功', 'success');
-    } catch (error) {
-        console.error('导出数据失败:', error);
-        showMessage('导出数据失败', 'error');
-    }
-}
-
 // 辅助函数
 function getRoleText(role) {
     const roleMap = {

@@ -24,6 +24,21 @@ router = APIRouter(prefix="/api/admin/prizes", tags=["奖品管理"])
 prize_manager = Prize()
 config_manager = Config()
 
+def process_prize_photo(prize: dict) -> dict:
+    """
+    处理奖品照片的回退逻辑
+    如果 photo 指定且文件存在则使用，否则回退到 default.png
+    """
+    photo_name = prize.get('photo') or 'default.png'
+    photo_path = os.path.join('Assest', 'Prize', photo_name)
+    if not photo_name or not os.path.exists(photo_path):
+        photo_name = 'default.png'
+    
+    prize["image"] = f"/Assest/Prize/{photo_name}"
+    # 兼容旧前端：将 photo 字段也回退为存在的文件名，防止前端直接使用 prize.photo 导致 404
+    prize["photo"] = photo_name
+    return prize
+
 @router.get("/stats")
 async def get_prizes_stats(current_user: dict = Depends(require_super_admin)):
     """获取奖品统计信息"""
@@ -119,6 +134,21 @@ async def get_prizes_list(
         
         async for prize in cursor:
             prize["_id"] = str(prize["_id"])
+
+            # 处理图片回退逻辑
+            process_prize_photo(prize)
+
+            # 如果这是默认奖品，动态计算其概率为 100 - sum(其他激活奖品权重)
+            try:
+                if prize.get("isDefault"):
+                    other_sum = await prize_manager.compute_other_active_weight()
+                    default_w = max(0.0, 100.0 - float(other_sum or 0.0))
+                    # 保证返回给前端的是一个数字（float）并且不把默认奖品计入其他计算
+                    prize["weight"] = default_w
+            except Exception:
+                # 计算失败时保留原始值并记录异常
+                logger.exception("计算默认奖品权重失败")
+
             prizes.append(prize)
         
         return {
@@ -152,17 +182,40 @@ async def create_prize(prize_data: dict, current_user: dict = Depends(require_su
         if existing:
             raise HTTPException(status_code=400, detail="奖品名称已存在")
         
+        # 在创建前校验概率总和（排除默认奖品）
+        try:
+            collection = await prize_manager.get_collection()
+            pipeline = [
+                {"$match": {"isDefault": {"$ne": True}, "isActive": True}},
+                {"$group": {"_id": None, "totalProbability": {"$sum": "$weight"}}}
+            ]
+            result = await collection.aggregate(pipeline).to_list(1)
+            current_total = float(result[0]["totalProbability"]) if result and result[0].get("totalProbability") is not None else 0.0
+        except Exception:
+            logger.exception("校验当前概率总和时发生错误")
+            current_total = 0.0
+
         # 创建奖品数据
         new_prize = {
             "Name": name,
             "total": int(prize_data["total"]),
-            "weight": int(prize_data["weight"]),
+            "weight": float(prize_data["weight"]),
             "photo": prize_data.get("photo", "").strip(),
             "isActive": prize_data.get("isActive", True),
             "createdAt": datetime.now(),
             "updatedAt": datetime.now()
         }
-        
+        # 校验新加后的总概率是否超过100
+        try:
+            new_total = current_total + float(new_prize["weight"] or 0)
+            if new_total > 100.0:
+                raise HTTPException(status_code=400, detail=f"无法创建：激活奖品的概率总和（不含默认奖品）将超过100%（当前: {current_total:.1f}，添加: {new_prize['weight']}，合计: {new_total:.1f}）")
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("校验新奖品概率时发生错误")
+            raise HTTPException(status_code=500, detail="概率校验失败")
+
         # 创建奖品
         prize_id = await prize_manager.create_prize(new_prize)
         if prize_id:
@@ -190,13 +243,26 @@ async def get_prize(prize_id: str, current_user: dict = Depends(require_super_ad
         prize = await prize_manager.get_prize_by_field("_id", ObjectId(prize_id))
         if not prize:
             raise HTTPException(status_code=404, detail="奖品不存在")
-        
+        # 格式化返回字段并处理图片回退
+        prize["_id"] = str(prize["_id"]) if isinstance(prize.get("_id"), ObjectId) else str(prize.get("_id"))
+        process_prize_photo(prize)
+
+        # 如果这是默认奖品，动态计算其概率并覆盖
+        try:
+            if prize.get("isDefault"):
+                other_sum = await prize_manager.compute_other_active_weight()
+                default_w = max(0.0, 100.0 - float(other_sum or 0.0))
+                prize["weight"] = default_w
+        except Exception:
+            logger.exception("计算默认奖品权重失败")
+
         return prize
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取奖品信息失败: {e}")
+        # 使用 exception 以记录完整堆栈，便于服务器端排查
+        logger.exception(f"获取奖品信息失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取奖品信息失败: {str(e)}")
 
 @router.put("/{prize_id}")
@@ -234,7 +300,31 @@ async def update_prize(
         # 准备更新数据
         update_data = {key: value for key, value in prize_data.items() if key != "_id"}
         update_data["updatedAt"] = datetime.now()
-        
+        # 如果更新了 weight 字段，需要校验概率总和（排除默认奖品并排除当前奖品）
+        if "weight" in update_data:
+            try:
+                collection = await prize_manager.get_collection()
+                match_condition = {"isDefault": {"$ne": True}, "isActive": True, "_id": {"$ne": ObjectId(prize_id)}}
+                pipeline = [
+                    {"$match": match_condition},
+                    {"$group": {"_id": None, "totalProbability": {"$sum": "$weight"}}}
+                ]
+                result = await collection.aggregate(pipeline).to_list(1)
+                current_total = float(result[0]["totalProbability"]) if result and result[0].get("totalProbability") is not None else 0.0
+            except Exception:
+                logger.exception("校验更新后概率总和时发生错误")
+                current_total = 0.0
+
+            try:
+                new_total = current_total + float(update_data.get("weight") or 0)
+                if new_total > 100.0:
+                    raise HTTPException(status_code=400, detail=f"无法更新：激活奖品的概率总和（不含默认奖品）将超过100%（当前排除自身: {current_total:.1f}，更新为: {update_data.get('weight')}，合计: {new_total:.1f}）")
+            except HTTPException:
+                raise
+            except Exception:
+                logger.exception("校验更新奖品概率时发生错误")
+                raise HTTPException(status_code=500, detail="概率校验失败")
+
         # 更新奖品
         success = await prize_manager.update_prize(prize_id, update_data)
         if success:
@@ -467,29 +557,6 @@ async def update_lottery_config(config_data: dict, current_user: dict = Depends(
         logger.error(f"更新抽奖配置失败: {e}")
         raise HTTPException(status_code=500, detail=f"更新抽奖配置失败: {str(e)}")
 
-@router.get("/probability-summary")
-async def get_probability_summary(current_user: dict = Depends(require_super_admin)):
-    """获取概率摘要"""
-    try:
-        collection = await prize_manager.get_collection()
-        pipeline = [
-            {"$group": {
-                "_id": None,
-                "totalProbability": {"$sum": "$weight"}
-            }}
-        ]
-        result = await collection.aggregate(pipeline).to_list(1)
-        total_probability = result[0]["totalProbability"] if result else 0
-        
-        return {
-            "totalProbability": total_probability,
-            "thanksProbability": max(0, 100 - total_probability),
-            "isComplete": total_probability >= 100
-        }
-    except Exception as e:
-        logger.error(f"获取概率摘要失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取概率摘要失败: {str(e)}")
-
 @router.post("/validate-probability")
 async def validate_probability(data: dict, current_user: dict = Depends(require_super_admin)):
     """验证奖品概率"""
@@ -500,10 +567,12 @@ async def validate_probability(data: dict, current_user: dict = Depends(require_
         collection = await prize_manager.get_collection()
         
         # 构建查询条件（编辑时排除当前奖品）
-        match_condition = {}
+        # 仅统计激活且非默认的奖品
+        match_condition = {"isDefault": {"$ne": True}, "isActive": True}
         if exclude_id:
+            # 编辑时排除当前奖品
             match_condition["_id"] = {"$ne": ObjectId(exclude_id)}
-        
+
         pipeline = [
             {"$match": match_condition},
             {"$group": {
@@ -516,12 +585,67 @@ async def validate_probability(data: dict, current_user: dict = Depends(require_
         current_total = result[0]["totalProbability"] if result else 0
         new_total = current_total + new_weight
         
+        valid = (new_total <= 100.0)
         return {
-            "valid": True,
+            "valid": valid,
             "totalProbability": new_total,
             "currentTotal": current_total,
-            "message": f"当前总概率: {current_total:.1f}%, 添加后: {new_total:.1f}%"
+            "message": f"当前总概率: {current_total:.1f}%, 添加后: {new_total:.1f}%",
+            "canProceed": valid
         }
     except Exception as e:
         logger.error(f"验证概率失败: {e}")
         raise HTTPException(status_code=500, detail=f"验证概率失败: {str(e)}")
+
+@router.get("/probability-summary")
+async def get_probability_summary(current_user: dict = Depends(require_super_admin)):
+    """获取概率总和信息"""
+    try:
+        collection = await prize_manager.get_collection()
+        
+        # 首先计算非默认奖品的概率总和
+        non_default_pipeline = [
+            {"$match": {
+                "isActive": {"$ne": False},
+                "isDefault": {"$ne": True}
+            }},
+            {"$group": {
+                "_id": None,
+                "totalProbability": {"$sum": "$weight"}
+            }}
+        ]
+        
+        non_default_result = await collection.aggregate(non_default_pipeline).to_list(1)
+        non_default_total = float(non_default_result[0]["totalProbability"]) if non_default_result and non_default_result[0].get("totalProbability") is not None else 0.0
+        
+        # 计算默认奖品（谢谢惠顾）的概率
+        thanks_probability = max(0.0, 100.0 - non_default_total)
+        
+        # 获取所有激活奖品的实际概率总和（包括动态计算的默认奖品）
+        all_active_pipeline = [
+            {"$match": {
+                "isActive": {"$ne": False}
+            }}
+        ]
+        
+        all_prizes = await collection.find({"isActive": {"$ne": False}}).to_list(None)
+        actual_total = 0.0
+        
+        for prize in all_prizes:
+            if prize.get("isDefault"):
+                # 默认奖品使用动态计算的概率
+                actual_total += thanks_probability
+            else:
+                # 非默认奖品使用存储的权重
+                actual_total += float(prize.get("weight", 0))
+        
+        return {
+            "totalProbability": non_default_total,  # 这里应该返回非默认奖品的总和
+            "nonDefaultTotal": non_default_total,
+            "thanksProbability": thanks_probability,
+            "actualTotal": actual_total,  # 实际总概率（包括谢谢惠顾）
+            "message": f"实际总概率: {actual_total:.1f}%, 普通奖品: {non_default_total:.1f}%, 谢谢惠顾: {thanks_probability:.1f}%"
+        }
+    except Exception as e:
+        logger.error(f"获取概率总和失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取概率总和失败: {str(e)}")

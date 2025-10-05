@@ -6,4 +6,4 @@ motor>=3.1.2
 python-multipart>=0.0.6
 Pillow>=9.5.0
 pydantic>=1.10.7
-bson>=0.5.10
+# bson package removed because it conflicts with pymongo's bundled bson

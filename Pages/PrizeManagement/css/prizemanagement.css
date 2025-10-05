@@ -101,15 +101,18 @@
     padding: 1.5rem;
     margin-bottom: 2rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 1.5rem;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .search-section {
     display: flex;
     gap: 0.5rem;
+    flex: 1;
+    max-width: 600px;
 }
 
 .search-box {
@@ -165,6 +168,8 @@
     display: flex;
     gap: 0.5rem;
     justify-content: flex-end;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 /* 按钮样式 */
@@ -370,6 +375,12 @@
     font-size: 0.8rem;
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(17, 153, 142, 0.3);
+}
+
+/* 库存为0时的样式，红色底，和非0库存区分 */
+.total-badge.zero-stock {
+    background: linear-gradient(135deg, #ff6b6b, #ff4d4d);
+    box-shadow: 0 2px 4px rgba(255, 77, 77, 0.25);
 }
 
 /* 中奖概率标签样式 */
@@ -601,6 +612,7 @@
         justify-content: center;
         flex-wrap: wrap;
         gap: 0.5rem;
+        margin-left: 0;
     }
     
     .action-buttons .btn {

@@ -7,6 +7,7 @@ import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
+import os
 
 from fastapi import FastAPI, Request, HTTPException, Depends, Cookie, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
@@ -774,11 +775,17 @@ async def get_lottery_prizes():
         logger.info("遍历奖品数据")
         async for prize in cursor:
             # 转换字段名以匹配前端期望的格式
+            # 处理图片：如果数据库中有 photo 字段且文件存在则使用之，否则回退到 default.png
+            photo_name = prize.get('photo') or 'default.png'
+            photo_path = os.path.join('Assest', 'Prize', photo_name)
+            if not os.path.exists(photo_path):
+                photo_name = 'default.png'
+
             converted_prize = {
                 "_id": str(prize["_id"]),
                 "name": prize.get("Name", "未知奖品"),  # 数据库中是 Name
                 "description": prize.get("description", ""),
-                "image": f"/Assest/Prize/{prize.get('photo', 'default.png')}" if prize.get('photo') else "/Assest/Prize/default.png",
+                "image": f"/Assest/Prize/{photo_name}",
                 "quantity": prize.get("total", 0),  # 数据库中是 total
                 "stock": prize.get("total", 0),  # 为了兼容性也保留 stock
                 "weight": prize.get("weight", 1),
@@ -859,12 +866,19 @@ async def draw_lottery(current_user: dict = Depends(require_auth)):
             if default_prize:
                 available_prizes.append(default_prize)
             
+            # 在进行抽奖前校验权重总和：不允许总权重超过100
+            # 这里的业务规则：权重字段表示百分比（0-100），整体不应超过100%
+            total_weight = sum(float(prize.get("weight", 0) or 0) for prize in available_prizes)
+            if total_weight > 100.0:
+                # 记录错误并阻止抽奖
+                logger.error(f"抽奖失败：奖品权重总和超过100%，当前总和={total_weight}")
+                raise HTTPException(status_code=400, detail=f"奖品概率总和超过100%（{total_weight}），请调整奖品权重后重试。")
+
             # 基于权重的概率抽奖
             # 计算总权重（所有有库存的奖品 + 默认奖品）
-            total_weight = sum(prize.get("weight", 1) for prize in available_prizes)
             
             # 生成随机数
-            rand_value = random.uniform(0, total_weight)
+            rand_value = random.uniform(0, total_weight) if total_weight > 0 else 0
             
             # 根据权重选择奖品
             current_weight = 0
@@ -1302,40 +1316,60 @@ async def init_system(current_user: Optional[dict] = Depends(get_current_user_op
             other_prizes_weight = agg_result[0]["totalWeight"] if agg_result else 0
             
             # 计算默认奖品的概率
-            default_weight = max(0, 100 - other_prizes_weight)
+            # 如果其他奖品的权重之和超过100，视为配置错误，不自动创建/更新默认奖品
+            if other_prizes_weight > 100:
+                error_msg = f"奖品初始化失败：其他奖品权重总和超过100%（{other_prizes_weight}）"
+                logger.error(error_msg)
+                result["details"]["errors"].append(error_msg)
+                # 跳过默认奖品创建/更新，继续后续步骤
+                other_prizes_weight = other_prizes_weight
+                default_weight = 0
+            else:
+                default_weight = max(0, 100 - other_prizes_weight)
             
             if default_prize:
                 # 更新现有默认奖品
-                await prize_collection.update_one(
-                    {"_id": default_prize["_id"]},
-                    {
-                        "$set": {
-                            "weight": default_weight,
-                            "isActive": True if default_weight > 0 else False,
-                            "updated_at": datetime.now()
+                # 只有在计算出的 default_weight 合法时才更新默认奖品
+                if default_weight > 0 or other_prizes_weight <= 100:
+                    await prize_collection.update_one(
+                        {"_id": default_prize["_id"]},
+                        {
+                            "$set": {
+                                "weight": default_weight,
+                                "isActive": True if default_weight > 0 else False,
+                                "updated_at": datetime.now()
+                            }
                         }
-                    }
-                )
-                result["details"]["default_prize_status"] = f"默认奖品已更新，概率: {default_weight}%"
-                logger.info(f"✓ 默认奖品已更新，概率: {default_weight}%")
+                    )
+                    result["details"]["default_prize_status"] = f"默认奖品已更新，概率: {default_weight}%"
+                    logger.info(f"✓ 默认奖品已更新，概率: {default_weight}%")
+                else:
+                    # 当 other_prizes_weight > 100 时，已将错误记录，跳过更新
+                    result["details"]["default_prize_status"] = "跳过默认奖品更新，原因: 其他奖品概率总和非法 (>100%)"
+                    logger.warning(result["details"]["default_prize_status"])
             else:
                 # 创建默认奖品
-                default_prize_data = {
-                    "Name": "谢谢惠顾",
-                    "total": 999999,
-                    "weight": default_weight,
-                    "photo": "",
-                    "description": "感谢参与，期待下次好运！",
-                    "isActive": True if default_weight > 0 else False,
-                    "isDefault": True,
-                    "drawn_count": 0,
-                    "redeemed_count": 0,
-                    "created_at": datetime.now(),
-                    "updated_at": datetime.now()
-                }
-                await prize_collection.insert_one(default_prize_data)
-                result["details"]["default_prize_status"] = f"默认奖品已创建，概率: {default_weight}%"
-                logger.info(f"✓ 默认奖品已创建，概率: {default_weight}%")
+                if other_prizes_weight > 100:
+                    # 已记录错误，跳过创建默认奖品
+                    result["details"]["default_prize_status"] = "跳过默认奖品创建，原因: 其他奖品概率总和非法 (>100%)"
+                    logger.warning(result["details"]["default_prize_status"])
+                else:
+                    default_prize_data = {
+                        "Name": "谢谢惠顾",
+                        "total": 999999,
+                        "weight": default_weight,
+                        "photo": "",
+                        "description": "感谢参与，期待下次好运！",
+                        "isActive": True if default_weight > 0 else False,
+                        "isDefault": True,
+                        "drawn_count": 0,
+                        "redeemed_count": 0,
+                        "created_at": datetime.now(),
+                        "updated_at": datetime.now()
+                    }
+                    await prize_collection.insert_one(default_prize_data)
+                    result["details"]["default_prize_status"] = f"默认奖品已创建，概率: {default_weight}%"
+                    logger.info(f"✓ 默认奖品已创建，概率: {default_weight}%")
         except Exception as e:
             error_msg = f"初始化默认奖品失败: {str(e)}"
             logger.error(error_msg)
