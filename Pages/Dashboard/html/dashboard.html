@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汇总看板 - NISA Welcome System</title>
+    <link rel="stylesheet" href="/Pages/Common/css/base.css">
+    <link rel="stylesheet" href="/Pages/Dashboard/css/dashboard.css">
+    <link rel="stylesheet" href="/Pages/Common/libs/font-awesome/all.min.css">
+    <!-- 引入 ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <!-- 统一导航栏将通过JavaScript自动插入 -->
+    
+    <div class="page-container">
+        <div class="main-container">
+            <div class="header-section">
+                <h1><i class="fas fa-chart-line"></i> 汇总看板</h1>
+                <p class="subtitle">数据统计与分析</p>
+            </div>
+
+            <!-- 总览面板 -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon total-users">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div class="stat-label">普通用户总数</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon total-levels">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalLevels">0</div>
+                        <div class="stat-label">关卡总数</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon total-prizes">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalPrizeTypes">0</div>
+                        <div class="stat-label">奖品种类</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon total-drawn">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalDrawn">0</div>
+                        <div class="stat-label">总抽奖次数</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="charts-container">
+                <!-- 第一行：学院分布和关卡完成情况 -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-university"></i> 学院分布统计</h3>
+                            <p class="chart-subtitle">普通成员学院分布情况</p>
+                        </div>
+                        <div id="membersDistributionChart" class="chart-content"></div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-flag-checkered"></i> 关卡闯关统计</h3>
+                            <p class="chart-subtitle">各关卡通过人数分布</p>
+                        </div>
+                        <div id="levelCompletionChart" class="chart-content"></div>
+                    </div>
+                </div>
+
+                <!-- 第二行：奖品抽奖统计和人流量分布 -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-award"></i> 奖品抽奖统计</h3>
+                            <p class="chart-subtitle">各奖品抽中次数分布</p>
+                        </div>
+                        <div id="prizeDrawChart" class="chart-content"></div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-clock"></i> 人流量分布</h3>
+                            <p class="chart-subtitle">2025年10月19日 8:00-18:00 人流量趋势</p>
+                        </div>
+                        <div id="registrationTimelineChart" class="chart-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载提示 -->
+            <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>正在加载数据...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入公共脚本 -->
+    <script src="/Pages/Common/js/navigation.js"></script>
+    <script src="/Pages/Common/js/utils.js"></script>
+    <script src="/Pages/Dashboard/js/dashboard.js"></script>
+</body>
+</html>
