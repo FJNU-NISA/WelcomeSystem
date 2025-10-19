@@ -91,9 +91,9 @@ def get_user_permissions(user_role: str, user_info: dict) -> dict:
         }
             
     elif user_role == "super_admin":
-        # 超级管理员: 个人信息 + 分发积分 + 成员管理 + 关卡管理 + 奖品管理
+        # 超级管理员: 个人信息 + 分发积分 + 成员管理 + 关卡管理 + 奖品管理 + 汇总看板
         permissions["pages"] = ["info", "modifypoints", "membermanagement", "levelmanagement", 
-                               "prizemanagement", "login", "setpassword"]
+                               "prizemanagement", "dashboard", "login", "setpassword"]
         permissions["features"] = {
             "canLottery": False,
             "canModifyPoints": True,
@@ -253,6 +253,20 @@ async def prize_management_page(request: Request):
             return HTMLResponse(content=f.read())
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="奖品管理页面不存在")
+
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+async def dashboard_page(request: Request):
+    """汇总看板页面"""
+    # 检查超级管理员权限，未登录或权限不足时重定向
+    auth_result = await require_super_admin_redirect(request)
+    if isinstance(auth_result, RedirectResponse):
+        return auth_result
+    
+    try:
+        with open("Pages/Dashboard/html/dashboard.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="汇总看板页面不存在")
 
 @app.get("/admin/giftredemption", response_class=HTMLResponse)
 async def gift_redemption_page(request: Request):

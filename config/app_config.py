@@ -54,6 +54,7 @@ def setup_routes(app: FastAPI):
     """设置应用路由"""
     from api import auth_router, members_router, levels_router, prizes_router
     from api.routes.prizes import lottery_router
+    from api.routes.dashboard import router as dashboard_router
     
     # 注册API路由
     app.include_router(auth_router, tags=["认证"])
@@ -61,6 +62,7 @@ def setup_routes(app: FastAPI):
     app.include_router(levels_router, tags=["关卡管理"])
     app.include_router(prizes_router, tags=["奖品管理"])
     app.include_router(lottery_router, tags=["抽奖配置"])
+    app.include_router(dashboard_router, tags=["汇总看板"])
 
 def get_managers():
     """获取管理器实例"""

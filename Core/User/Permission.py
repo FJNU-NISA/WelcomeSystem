@@ -32,6 +32,7 @@ class Permission:
             "membermanagement",  # 成员管理界面
             "levelmanagement",   # 关卡管理界面
             "prizemanagement",   # 奖品管理界面
+            "dashboard",         # 汇总看板界面
             "login",             # 登录界面
             "setpassword"        # 设置密码界面
             # 超级管理员可以访问所有管理功能，但不能抽奖
