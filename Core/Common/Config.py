@@ -10,6 +10,8 @@ class Config:
     def get_value(self, section, option, fallback=None):
         """获取配置值"""
         try:
+            # 每次读取前重新加载配置文件，确保获取最新值
+            self.config.read(self.config_file, encoding='utf-8')
             return self.config.get(section, option)
         except (configparser.NoSectionError, configparser.NoOptionError):
             return fallback
